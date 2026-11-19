@@ -15,6 +15,10 @@ Georg md parses Markdown with swift-markdown. The packages are fetched at build 
 
 The variable TTFs in `Fonts/` are bundled unmodified in the app and the extension, and embedded as `data:` URIs in rendered HTML and PDF.
 
+## Georg logo (app icon)
+
+The app icon (`App/Assets.xcassets/AppIcon.appiconset`) is the Georg md logo of the georg family, from [georg-ds](https://github.com/shipibo-studio/georg-ds) release **0.13.0**, `src/brand/md-icon-macos-1024.png` (sha256 `2b5c43fdea0f60a0946e90fad87c6ff850c600a726000f433d8f4d717bb02c09`): the lowercase g with its square in Georg md's orange (`--accent-orange`, `#b04000` light / `#ff6a00` dark), on the macOS icon grid. It is internal, same owner. The sizes are scaled from that file with `sips` by `make icon`, never redrawn or recoloured; the 512 pt @2x image is the original. The Quick Look extension and `georg` use the app's icon. Brand rules: `../georg-ds/docs/brand-manual.md`.
+
 ## SF Symbols and system fonts
 
 Toolbar and settings icons are SF Symbols, through SwiftUI's `Image(systemName:)`, under Apple's terms for use in apps on Apple platforms. The SF Pro, New York, SF Mono, Charter, Avenir Next and Menlo font choices are system fonts; they are referenced, not bundled.

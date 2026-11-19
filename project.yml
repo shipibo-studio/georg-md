@@ -73,6 +73,8 @@ targets:
       base:
         PRODUCT_NAME: Georg md
         PRODUCT_BUNDLE_IDENTIFIER: cc.dasgeorg.md
+        # App icon from georg-ds 0.13.0 (see CREDITS.md); the extension and `georg` use the app's icon.
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_VERSION: "5.0"
   GeorgMDPreview:
     type: app-extension
