@@ -1,0 +1,17 @@
+# Material de referencia de terceros (app y capturas): nunca al repo
+rscs/
+
+# Generado
+build/
+dist/
+DerivedData/
+*.xcodeproj/
+.swiftpm/
+xcuserdata/
+*.dmg
+*.zip
+*.sha256
+
+# Sistema / local
+.DS_Store
+.claude/settings.local.json

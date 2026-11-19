@@ -1,0 +1,155 @@
+name: GeorgMD
+options:
+  bundleIdPrefix: cl.jorgeepunan
+  deploymentTarget:
+    macOS: "15.0"
+packages:
+  swift-markdown:
+    url: https://github.com/swiftlang/swift-markdown.git
+    from: 0.5.0
+settings:
+  base:
+    SWIFT_VERSION: "6.0"
+    DEVELOPMENT_TEAM: 34BRMF8X9A
+    CODE_SIGN_STYLE: Automatic
+    ENABLE_HARDENED_RUNTIME: YES
+    # Versión única para app, extensión y CLI (scripts/release.sh las sobrescribe por línea de comandos).
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+targets:
+  GeorgMD:
+    type: application
+    platform: macOS
+    sources:
+      - App
+      - Shared
+      - path: Fonts
+        buildPhase: resources
+    dependencies:
+      - target: GeorgMDPreview
+        embed: true
+      # Herramienta de línea de comandos `georg` en Contents/Helpers (se enlaza a /usr/local/bin a mano).
+      - target: georg
+        embed: true
+        codeSign: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Helpers
+      - package: swift-markdown
+        product: Markdown
+    entitlements:
+      path: App/GeorgMD.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.files.user-selected.read-write: true
+        com.apple.security.network.client: true
+        # Lectura de imágenes hermanas del .md; ImageLoader solo lee archivos de imagen (extensión + magic bytes).
+        com.apple.security.temporary-exception.files.absolute-path.read-only:
+          - /
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Georg md
+        CFBundleName: Georg md
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        # Releases públicos donde Settings → About busca nuevas versiones.
+        GeorgReleasesRepo: shipibo-studio/georg-md
+        LSApplicationCategoryType: public.app-category.productivity
+        NSPrincipalClass: NSApplication
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Markdown Document
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Alternate
+            LSItemContentTypes: [net.daringfireball.markdown]
+        UTImportedTypeDeclarations:
+          - UTTypeIdentifier: net.daringfireball.markdown
+            UTTypeDescription: Markdown Document
+            UTTypeConformsTo: [public.plain-text]
+            UTTypeTagSpecification:
+              public.filename-extension: [md, markdown, mdown, mkd, mkdn]
+              public.mime-type: [text/markdown]
+    settings:
+      base:
+        PRODUCT_NAME: Georg md
+        PRODUCT_BUNDLE_IDENTIFIER: cl.jorgeepunan.georgmd
+        SWIFT_VERSION: "5.0"
+  GeorgMDPreview:
+    type: app-extension
+    platform: macOS
+    sources:
+      - Extension
+      - Shared
+      - path: Fonts
+        buildPhase: resources
+    dependencies:
+      - package: swift-markdown
+        product: Markdown
+    entitlements:
+      path: Extension/GeorgMDPreview.entitlements
+      properties:
+        com.apple.security.app-sandbox: true
+        com.apple.security.files.user-selected.read-only: true
+        com.apple.security.network.client: true
+        com.apple.security.temporary-exception.files.absolute-path.read-only:
+          - /
+    info:
+      path: Extension/Info.plist
+      properties:
+        CFBundleDisplayName: Georg md Preview
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.quicklook.preview
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).PreviewProvider
+          NSExtensionAttributes:
+            QLIsDataBasedPreview: true
+            QLSupportsSearchableItems: false
+            QLSupportedContentTypes:
+              - net.daringfireball.markdown
+              - public.markdown
+    settings:
+      base:
+        PRODUCT_NAME: Georg md Preview
+        PRODUCT_BUNDLE_IDENTIFIER: cl.jorgeepunan.georgmd.preview
+  # Solo desarrollo: exporta PDF/HTML y rasteriza páginas sin sandbox (no se embebe ni distribuye).
+  GeorgDevTool:
+    type: application
+    platform: macOS
+    sources:
+      - Tools/DevTool
+      - Shared
+      - App/Exporter.swift
+      - App/Theme.swift
+      - App/LiveStyler.swift
+      - App/LiveTextView.swift
+      - App/EditAssist.swift
+      - App/CodeEditor.swift
+      - App/ScrollSync.swift
+      - App/SettingsView.swift
+      - App/AppLock.swift
+      - App/UpdateChecker.swift
+      - path: Fonts
+        buildPhase: resources
+    dependencies:
+      - package: swift-markdown
+        product: Markdown
+    info:
+      path: Tools/DevTool/Info.plist
+      properties:
+        CFBundleName: GeorgDevTool
+        LSBackgroundOnly: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: cl.jorgeepunan.georgmd.devtool
+        SWIFT_VERSION: "5.0"
+  georg:
+    type: tool
+    platform: macOS
+    sources: [CLI]
+    settings:
+      base:
+        PRODUCT_NAME: georg
+        PRODUCT_BUNDLE_IDENTIFIER: cl.jorgeepunan.georgmd.cli
+        SWIFT_VERSION: "5.0"
+        SKIP_INSTALL: YES
