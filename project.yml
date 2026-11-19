@@ -129,6 +129,7 @@ targets:
       - App/SettingsView.swift
       - App/AppLock.swift
       - App/UpdateChecker.swift
+      - App/DefaultApp.swift
       - path: Fonts
         buildPhase: resources
     dependencies:

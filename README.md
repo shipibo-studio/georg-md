@@ -8,8 +8,9 @@ Requires **macOS 15** or later. Signed with Developer ID and notarized by Apple.
 
 1. Download the latest `Georg-md-x.y.z.dmg` from [Releases](https://github.com/shipibo-studio/georg-md/releases).
 2. Open it and drag **Georg md** to Applications. Open it once.
-3. Quick Look: press Space on any `.md` file in Finder. If another app's preview shows up, enable **Georg md Preview** in System Settings → General → Login Items & Extensions → Quick Look.
-4. Command line (optional): Settings → Command Line shows the one-time command to link `georg` into `/usr/local/bin`. Then `georg notes.md` opens a file (and creates it if it doesn't exist).
+3. On first launch Georg md becomes the default app for Markdown files (only once; change it any time in Finder → Get Info → Open with, or back in Settings → Default App → Make Default).
+4. Quick Look: press Space on any `.md` file in Finder. If another app's preview shows up, enable **Georg md Preview** in System Settings → General → Login Items & Extensions → Quick Look.
+5. Command line (optional): Settings → Command Line shows the one-time command to link `georg` into `/usr/local/bin`. Then `georg notes.md` opens a file (and creates it if it doesn't exist).
 
 Settings → About shows the installed version and checks this repository for new releases.
 
@@ -86,6 +87,7 @@ App/              macOS app (SwiftUI + AppKit)
   Exporter.swift       PDF and HTML export
   AppLock.swift        inactivity lock (LocalAuthentication)
   UpdateChecker.swift  GitHub Releases check
+  DefaultApp.swift     default app for Markdown (first launch + Settings button)
   Theme.swift          palettes, themes, fonts
   SettingsView.swift
 Extension/        Quick Look preview extension

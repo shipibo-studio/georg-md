@@ -10,6 +10,8 @@ struct SettingsView: View {
     @AppStorage(AppLock.minutesKey) private var lockMinutes = 0
     @State private var copied = false
     @StateObject private var updates = UpdateChecker()
+    @State private var defaultApp: URL? = DefaultApp.current
+    @State private var defaultError: String?
 
     private var theme: AppTheme { AppTheme.resolve(themeRaw) }
     private var fonts: FontSettings { FontSettings(textRaw: fontTextRaw, codeRaw: fontCodeRaw, size: fontSize) }
@@ -32,6 +34,25 @@ struct SettingsView: View {
                         .disabled(updates.state == .checking)
                 } label: {
                     updateStatus
+                }
+            }
+
+            Section("Default App") {
+                LabeledContent {
+                    Button("Make Default") {
+                        Task {
+                            do { try await DefaultApp.makeDefault(); defaultError = nil }
+                            catch { defaultError = error.localizedDescription }
+                            defaultApp = DefaultApp.current
+                        }
+                    }
+                    .disabled(isDefaultApp)
+                } label: {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(isDefaultApp ? "Georg md opens your Markdown files."
+                             : "Markdown files open with \(defaultApp.map { $0.deletingPathExtension().lastPathComponent } ?? "no app").")
+                        if let defaultError { Text(defaultError).font(.caption).foregroundStyle(.red) }
+                    }
                 }
             }
 
@@ -94,7 +115,15 @@ struct SettingsView: View {
         }
         .formStyle(.grouped)
         .frame(width: 540, height: 680)
-        .onAppear { AppearanceController.apply(theme: theme) }
+        .onAppear {
+            AppearanceController.apply(theme: theme)
+            defaultApp = DefaultApp.current
+        }
+    }
+
+    private var isDefaultApp: Bool {
+        guard let url = defaultApp, let id = Bundle(url: url)?.bundleIdentifier else { return false }
+        return id == Bundle.main.bundleIdentifier
     }
 
     @ViewBuilder private var updateStatus: some View {

@@ -39,10 +39,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         MainActor.assumeIsolated {
             AppLock.shared.start()
+            DefaultApp.claimOnFirstLaunch()
             AppearanceController.apply(theme: AppTheme.resolve(UserDefaults.standard.string(forKey: "theme") ?? ""))
         }
         #if DEBUG
         let env = ProcessInfo.processInfo.environment
+        // Prueba (solo Debug): ¿puede la app sandboxeada fijarse como predeterminada para Markdown?
+        if env["GMD_TEST_DEFAULT"] != nil {
+            Task { @MainActor in
+                do {
+                    try await DefaultApp.makeDefault()
+                    print("DEFAULT OK isDefault=\(DefaultApp.isDefault) current=\(DefaultApp.current?.path ?? "-")")
+                    exit(0)
+                } catch {
+                    print("DEFAULT ERROR \(error)")
+                    exit(1)
+                }
+            }
+            return
+        }
         guard let inPath = env["MDQ_EXPORT_IN"], let outPath = env["MDQ_EXPORT_OUT"] else { return }
         let input = URL(fileURLWithPath: inPath), output = URL(fileURLWithPath: outPath)
         Task { @MainActor in
