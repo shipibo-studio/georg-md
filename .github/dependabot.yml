@@ -1,0 +1,23 @@
+# Dependency updates. Without this file, Dependabot only opens security updates:
+# it would not bump versions or the SHA-pinned GitHub Actions.
+#
+# GitHub Actions is the only ecosystem: the app has no package manager and no
+# third-party runtime dependencies.
+
+version: 2
+updates:
+  # Keep the SHA-pinned actions current. Monthly and grouped into a single pull
+  # request, so update noise does not bury security updates.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+      day: monday
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 3
+    commit-message:
+      prefix: chore
+      include: scope

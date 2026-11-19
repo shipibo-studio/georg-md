@@ -41,19 +41,19 @@ Settings → About shows the installed version and checks this repository for ne
 Requires Xcode 16+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
 
 ```sh
-xcodegen generate
-xcodebuild -project GeorgMD.xcodeproj -scheme GeorgMD -configuration Debug -derivedDataPath build build
-open "build/Build/Products/Debug/Georg md.app"
+make build   # ad-hoc signed Release build in build/DerivedData
+make test    # test suite (must report 0 failures)
+make run     # build and open
 ```
 
-Run `xcodegen generate` again after adding source files; the `.xcodeproj` is generated and not committed. Signing uses the team in `project.yml`; change `DEVELOPMENT_TEAM` to build under your own account.
+The `.xcodeproj` is generated from `project.yml` and not committed; every `make` target regenerates it. Everyday builds are ad-hoc signed, so no certificate is needed.
 
 ### Release
 
 ```sh
 xcrun notarytool store-credentials georg-md --apple-id <apple-id> --team-id <team-id>   # once
-scripts/release.sh 1.1.0             # signed + notarized .dmg in dist/
-scripts/release.sh 1.1.0 --publish   # also creates the GitHub release
+make release                          # signed + notarized .dmg in dist/ for MARKETING_VERSION
+scripts/release.sh 1.1.0 --publish    # also creates the GitHub release
 ```
 
 The script builds Release with the Developer ID certificate (hardened runtime, secure timestamp, no debug entitlements), notarizes and staples both the app and the `.dmg`, checks Gatekeeper, and writes a SHA-256 file. `--skip-notarize` makes a local, unnotarized build for testing.
@@ -63,9 +63,8 @@ The script builds Release with the Developer ID certificate (hardened runtime, s
 `GeorgDevTool` is a development-only helper (not sandboxed, never shipped). It renders and exports without touching the app's sandbox container. It's driven by environment variables because AppKit treats path arguments as documents to open:
 
 ```sh
-xcodebuild -project GeorgMD.xcodeproj -scheme GeorgDevTool -configuration Debug -derivedDataPath build build
-T=build/Build/Products/Debug/GeorgDevTool.app/Contents/MacOS/GeorgDevTool
-MDQ_IN=samples/test.md MDQ_OUT=/tmp/x MDQ_TASK=test $T                    # test suite (must report 0 failures)
+make test   # builds GeorgDevTool and runs the suite
+T=build/DerivedData/Build/Products/Debug/GeorgDevTool.app/Contents/MacOS/GeorgDevTool
 MDQ_IN=samples/math-code.md MDQ_OUT=/tmp/mc $T                           # PDF + one PNG per page
 MDQ_IN=samples/live.md MDQ_OUT=/tmp/live MDQ_TASK=live MDQ_THEME=midnight $T   # screenshot of Write mode
 ```
@@ -106,3 +105,7 @@ scripts/          release script
 - Quick Look follows the system appearance, not the app theme.
 - No footnotes yet.
 - WebKit ignores `break-after: avoid` when printing, so a heading can end up alone at the bottom of a PDF page.
+
+## Contributing and security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) (the georg family conventions), [AGENTS.md](AGENTS.md) for architecture notes, and [SECURITY.md](SECURITY.md) to report a vulnerability privately. Third-party components are listed in [CREDITS.md](CREDITS.md) and changes in [CHANGELOG.md](CHANGELOG.md).
