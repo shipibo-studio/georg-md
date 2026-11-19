@@ -4,7 +4,7 @@ import AppKit
 // Vive en <App>.app/Contents/Helpers/georg; se enlaza a /usr/local/bin/georg (ver Ajustes → Command Line).
 // Uso: georg [archivo ...]   (sin argumentos abre la app; crea los .md que no existan)
 
-let bundleID = "cl.jorgeepunan.georgmd"
+let bundleID = "cc.dasgeorg.md"
 let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mkd", "mkdn", "txt"]
 
 func fail(_ message: String) -> Never {
