@@ -132,6 +132,7 @@ targets:
       - App/AppLock.swift
       - App/UpdateChecker.swift
       - App/DefaultApp.swift
+      - App/Assets.xcassets
       - path: Fonts
         buildPhase: resources
     dependencies:

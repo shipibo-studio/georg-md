@@ -26,8 +26,18 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section("About") {
-                LabeledContent("Georg md") {
+                LabeledContent {
                     Text("Version \(UpdateChecker.current) (\(UpdateChecker.build))").foregroundStyle(.secondary).textSelection(.enabled)
+                } label: {
+                    HStack(spacing: 10) {
+                        // Georg md symbol from georg-ds (light and dark variants; see CREDITS.md).
+                        Image("BrandSymbol")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 28)
+                            .accessibilityHidden(true)
+                        Text("Georg md").font(.headline)
+                    }
                 }
                 LabeledContent {
                     Button("Check for Updates") { Task { await updates.check() } }
