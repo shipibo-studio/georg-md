@@ -9,7 +9,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - **An app icon: the Georg md logo** from georg-ds 0.13.0, a lowercase g with its square in the fixed Georg md orange. Until now the app had no icon and showed the generic one in the Dock and Finder.
-
 - **Georg md offers to be the default Markdown app.** On the first launch from an Applications folder it becomes the app that opens `.md` files, once; if you later pick another app it does not insist. *Settings → Default App* shows which app opens Markdown today and has a *Make Default* button.
 
 ### Changed

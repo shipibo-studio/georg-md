@@ -1,8 +1,8 @@
 import AppKit
 
-// georg: abre archivos en Georg md desde Terminal.
-// Vive en <App>.app/Contents/Helpers/georg; se enlaza a /usr/local/bin/georg (ver Ajustes → Command Line).
-// Uso: georg [archivo ...]   (sin argumentos abre la app; crea los .md que no existan)
+// georg: opens files in Georg md from Terminal.
+// Lives in <App>.app/Contents/Helpers/georg; linked to /usr/local/bin/georg (see Settings → Command Line).
+// Usage: georg [file ...]   (with no arguments opens the app; creates any missing .md files)
 
 let bundleID = "cc.dasgeorg.md"
 let markdownExtensions: Set<String> = ["md", "markdown", "mdown", "mkd", "mkdn", "txt"]
@@ -22,7 +22,7 @@ if args.contains("-h") || args.contains("--help") {
     exit(0)
 }
 
-/// La app que contiene este binario (resolviendo el enlace de /usr/local/bin); si no, la registrada en el sistema.
+/// The app that contains this binary (resolving the /usr/local/bin link); otherwise, the one registered with the system.
 func appURL() -> URL? {
     if let exe = Bundle.main.executableURL?.resolvingSymlinksInPath() {
         let app = exe.deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
@@ -41,7 +41,7 @@ for arg in args {
     if fm.fileExists(atPath: url.path, isDirectory: &isDir) {
         if isDir.boolValue { fail("\(arg) is a directory") }
     } else {
-        // Solo se crean archivos Markdown/texto, nunca carpetas intermedias.
+        // Only Markdown/text files are created, never intermediate folders.
         guard markdownExtensions.contains(url.pathExtension.lowercased()) else { fail("\(arg): no such file") }
         guard fm.createFile(atPath: url.path, contents: Data(), attributes: nil) else { fail("could not create \(arg)") }
     }

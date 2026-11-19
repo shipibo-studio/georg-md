@@ -3,24 +3,24 @@ import SwiftUI
 import Markdown
 import PDFKit
 
-// Herramienta de desarrollo (no se distribuye ni se embebe en la app).
-// Sin sandbox para poder escribir en rutas de trabajo sin tocar el contenedor de la app.
-// Uso (variables de entorno, porque AppKit interpreta argumentos con rutas como documentos):
-//   MDQ_IN=samples/test.md MDQ_OUT=/tmp/out MDQ_TASK=pdf   → out.pdf + out-pN.png por página
+// Development tool (not distributed or embedded in the app).
+// Not sandboxed so it can write to working paths without touching the app's container.
+// Usage (environment variables, because AppKit interprets path arguments as documents):
+//   MDQ_IN=samples/test.md MDQ_OUT=/tmp/out MDQ_TASK=pdf   → out.pdf + out-pN.png per page
 //   MDQ_TASK=html                                           → out.html
-//   MDQ_TASK=ast                                            → árbol de swift-markdown con rangos
-//   MDQ_TASK=live [MDQ_THEME=…] [MDQ_CARET=n]                → out.png del modo Escribir
-//   MDQ_TASK=test  (MDQ_IN = cualquier .md de samples/)      → pruebas del modo Escribir
+//   MDQ_TASK=ast                                            → swift-markdown tree with ranges
+//   MDQ_TASK=live [MDQ_THEME=…] [MDQ_CARET=n]                → out.png of Write mode
+//   MDQ_TASK=test  (MDQ_IN = any .md in samples/)            → Write mode tests
 
 @MainActor
 func runTask() async -> Int32 {
     let env = ProcessInfo.processInfo.environment
     guard let inPath = env["MDQ_IN"], let outBase = env["MDQ_OUT"] else {
-        print("Faltan MDQ_IN / MDQ_OUT"); return 2
+        print("Missing MDQ_IN / MDQ_OUT"); return 2
     }
     let input = URL(fileURLWithPath: inPath).standardizedFileURL
     let out = URL(fileURLWithPath: outBase)
-    guard let text = try? String(contentsOf: input, encoding: .utf8) else { print("No es UTF-8"); return 1 }
+    guard let text = try? String(contentsOf: input, encoding: .utf8) else { print("Not UTF-8"); return 1 }
     let dir = input.deletingLastPathComponent()
     do {
         switch env["MDQ_TASK"] ?? "pdf" {
@@ -42,7 +42,7 @@ func runTask() async -> Int32 {
                 if let v { print(v, r, (st.string as NSString).substring(with: r).debugDescription) }
             }
         case "depth":
-            // Parsea y renderiza en un hilo con pila de 512 KB (como un hilo secundario de la extensión).
+            // Parses and renders on a thread with a 512 KB stack (like a secondary thread of the extension).
             await withCheckedContinuation { (c: CheckedContinuation<Void, Never>) in
                 let th = Thread {
                     let d = Document(parsing: MarkdownLimits.capNesting(text))
@@ -54,7 +54,7 @@ func runTask() async -> Int32 {
                 th.start()
             }
         case "settings", "code":
-            // Captura de Ajustes o del editor Markdown (MDQ_THEME, MDQ_FONT, MDQ_SIZE como en "live").
+            // Screenshot of Settings or of the Markdown editor (MDQ_THEME, MDQ_FONT, MDQ_SIZE as in "live").
             let theme = AppTheme.resolve(env["MDQ_THEME"] ?? "latte")
             UserDefaults.standard.set(theme.rawValue, forKey: "theme")
             NSApp.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
@@ -82,7 +82,7 @@ func runTask() async -> Int32 {
         case "test":
             return LiveChecks.runAll(samplesDir: dir)
         case "live":
-            // MDQ_THEME=<tema>, MDQ_FONT=<TextFont>, MDQ_CODEFONT=<CodeFont>, MDQ_SIZE=n, MDQ_CARET=línea (base 1)
+            // MDQ_THEME=<theme>, MDQ_FONT=<TextFont>, MDQ_CODEFONT=<CodeFont>, MDQ_SIZE=n, MDQ_CARET=line (1-based)
             let theme = AppTheme.resolve(env["MDQ_THEME"] ?? "latte")
             let palette = theme.palette
             let fonts = FontSettings(textRaw: env["MDQ_FONT"] ?? "geist", codeRaw: env["MDQ_CODEFONT"] ?? "geistMono",
@@ -99,8 +99,8 @@ func runTask() async -> Int32 {
             let paper: PaperSize = env["MDQ_PAPER"] == "letter" ? .letter : .a4
             let url = out.appendingPathExtension("pdf")
             try await Exporter.exportPDF(markdown: text, baseDir: dir, paper: paper, to: url)
-            guard let pdf = PDFDocument(url: url) else { print("PDF ilegible"); return 1 }
-            print("PDF OK \(url.path) páginas=\(pdf.pageCount) texto=\(pdf.string?.count ?? 0)")
+            guard let pdf = PDFDocument(url: url) else { print("Unreadable PDF"); return 1 }
+            print("PDF OK \(url.path) pages=\(pdf.pageCount) text=\(pdf.string?.count ?? 0)")
             for i in 0..<pdf.pageCount {
                 guard let page = pdf.page(at: i) else { continue }
                 let box = page.bounds(for: .mediaBox)

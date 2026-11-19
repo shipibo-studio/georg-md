@@ -3,7 +3,7 @@ import QuickLookUI
 import UniformTypeIdentifiers
 
 final class PreviewProvider: QLPreviewProvider, QLPreviewingController {
-    /// Límite de lectura para que un archivo enorme no agote la memoria de la extensión.
+    /// Read limit so a huge file does not exhaust the extension's memory.
     private static let maxBytes = 2_000_000
 
     func providePreview(for request: QLFilePreviewRequest) async throws -> QLPreviewReply {

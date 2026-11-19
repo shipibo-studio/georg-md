@@ -1,17 +1,17 @@
 import AppKit
 import UniformTypeIdentifiers
 
-/// App predeterminada para abrir Markdown (doble clic en Finder, `open`, botón de Quick Look).
+/// Default app for opening Markdown (double-click in Finder, `open`, the Quick Look button).
 @MainActor
 enum DefaultApp {
     static let offeredKey = "didClaimDefaultApp"
 
-    /// Tipos que se reclaman. `public.markdown` solo existe en algunas versiones de macOS.
+    /// Types that are claimed. `public.markdown` only exists on some macOS versions.
     static var types: [UTType] {
         ["net.daringfireball.markdown", "public.markdown"].compactMap { UTType($0) }
     }
 
-    /// App que abre hoy los `.md`.
+    /// App that currently opens `.md` files.
     static var current: URL? {
         types.first.flatMap { NSWorkspace.shared.urlForApplication(toOpen: $0) }
     }
@@ -21,14 +21,14 @@ enum DefaultApp {
         return id == Bundle.main.bundleIdentifier
     }
 
-    /// Solo una copia instalada debe reclamar los archivos (nunca un build de desarrollo en otra carpeta).
+    /// Only an installed copy should claim the files (never a development build in another folder).
     static var isInstalledCopy: Bool {
         let parent = Bundle.main.bundleURL.deletingLastPathComponent().standardizedFileURL.path
         let home = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Applications").path
         return parent == "/Applications" || parent == home
     }
 
-    /// Define Georg md como app predeterminada para Markdown.
+    /// Sets Georg md as the default app for Markdown.
     static func makeDefault() async throws {
         let app = Bundle.main.bundleURL
         for type in types {
@@ -40,8 +40,8 @@ enum DefaultApp {
         }
     }
 
-    /// Primera apertura de una copia instalada: se reclama una sola vez. Si luego el usuario elige otra app,
-    /// no se vuelve a insistir (para eso está el botón en Settings).
+    /// First launch of an installed copy: the claim is made only once. If the user later picks another app,
+    /// it does not insist again (that is what the button in Settings is for).
     static func claimOnFirstLaunch() {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: offeredKey), isInstalledCopy else { return }

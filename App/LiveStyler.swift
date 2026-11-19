@@ -1,22 +1,22 @@
 import AppKit
 import Markdown
 
-// Modo "Escribir": estilo del Markdown en vivo sobre un NSTextStorage, a partir del AST de swift-markdown.
-// El texto nunca se modifica al estilar: solo cambian atributos. Los marcadores (#, **, `, [](…)) se marcan
-// con .mdMarker y la vista los oculta (glifo nulo) fuera de la línea activa.
+// "Write" mode: live Markdown styling on an NSTextStorage, driven by the swift-markdown AST.
+// Styling never modifies the text: only attributes change. Markers (#, **, `, [](…)) are tagged
+// with .mdMarker and the view hides them (null glyph) outside the active line.
 
 extension NSAttributedString.Key {
-    /// Rango de marcador Markdown (se revela en la línea activa).
+    /// Markdown marker range (revealed on the active line).
     static let mdMarker = NSAttributedString.Key("georg.md.marker")
-    /// Marcador oculto: el layout manager genera glifos nulos (ancho cero, sin dibujo).
+    /// Hidden marker: the layout manager generates null glyphs (zero width, not drawn).
     static let mdHidden = NSAttributedString.Key("georg.md.hidden")
-    /// Decoración que dibuja la vista: "bullet", "box", "boxOn", "hr", "code", "quote:<nivel>:<#color>".
+    /// Decoration drawn by the view: "bullet", "box", "boxOn", "hr", "code", "quote:<level>:<#color>".
     static let mdDeco = NSAttributedString.Key("georg.md.deco")
-    /// Destino de un enlace (String). Se abre solo con ⌘-clic y solo si es http/https/mailto.
+    /// Link destination (String). Opens only on ⌘-click and only if it is http/https/mailto.
     static let mdLink = NSAttributedString.Key("georg.md.link")
 }
 
-/// Convierte posiciones de swift-markdown (línea y columna en bytes UTF-8, base 1) a offsets UTF-16 de NSString.
+/// Converts swift-markdown positions (line and column in UTF-8 bytes, 1-based) to NSString UTF-16 offsets.
 struct SourceMap {
     private var starts: [Int] = []
     private var lengths: [Int] = []
@@ -61,7 +61,7 @@ struct SourceMap {
     }
 }
 
-/// Métricas y atributos derivados de la paleta.
+/// Metrics and attributes derived from the palette.
 struct LiveStyle {
     let p: Palette
     var fonts = FontSettings()
@@ -90,7 +90,7 @@ struct LiveStyle {
 }
 
 enum LiveStyler {
-    /// Por encima de este tamaño el modo Escribir muestra texto plano (sin parseo ni estilos).
+    /// Above this size Write mode shows plain text (no parsing or styling).
     static let maxStyled = 300_000
 
     struct Block: Equatable {
@@ -98,8 +98,8 @@ enum LiveStyler {
         let range: NSRange
     }
 
-    /// Firma estructural del documento: bloques de nivel superior y todos los nodos (tipo + rango + datos
-    /// que afectan el estilo). Sirve para decidir si basta re-estilar el bloque editado.
+    /// Structural signature of the document: top-level blocks and every node (kind + range + data
+    /// that affects styling). Used to decide whether restyling the edited block is enough.
     struct Signature: Equatable {
         var blocks: [Block] = []
         var nodes: [Block] = []
@@ -110,14 +110,14 @@ enum LiveStyler {
         let map: SourceMap
         let signature: Signature
         let frontMatter: NSRange?
-        /// Bloques de nivel superior con su extensión real (cmark a veces deja hijos fuera del rango del padre).
+        /// Top-level blocks with their real extent (cmark sometimes leaves children outside the parent's range).
         let topLevel: [(node: Markup, range: NSRange)]
-        /// Documento con anidamiento patológico: se muestra como texto plano (no se parsea).
+        /// Document with pathological nesting: shown as plain text (not parsed).
         var plain = false
         var blocks: [Block] { signature.blocks }
     }
 
-    // MARK: Parseo
+    // MARK: Parsing
 
     static func parse(_ text: String) -> Parsed {
         let ns = text as NSString
@@ -129,8 +129,8 @@ enum LiveStyler {
         let fm = frontMatterRange(ns)
         var source = text
         if let fm {
-            // El front matter se reemplaza por líneas vacías: así el parser no lo toma por título setext
-            // y la numeración de líneas del resto del documento no cambia.
+            // The front matter is replaced with blank lines: that way the parser does not take it for a setext heading
+            // and the line numbering of the rest of the document does not change.
             let lines = ns.substring(with: fm).components(separatedBy: "\n").count
             source = String(repeating: "\n", count: max(0, lines - 1)) + ns.substring(from: NSMaxRange(fm))
         }
@@ -148,7 +148,7 @@ enum LiveStyler {
         return Parsed(document: doc, map: map, signature: sig, frontMatter: fm, topLevel: top)
     }
 
-    /// Agrega el nodo y sus descendientes a `out`; devuelve la unión de sus rangos.
+    /// Adds the node and its descendants to `out`; returns the union of their ranges.
     @discardableResult
     private static func collect(_ m: Markup, _ map: SourceMap, _ out: inout [Block]) -> NSRange? {
         var extent = map.range(m.range)
@@ -169,7 +169,7 @@ enum LiveStyler {
         return extent
     }
 
-    /// Bloque YAML inicial `---` … `---` (mismas reglas que HTMLPage).
+    /// Leading YAML block `---` … `---` (same rules as HTMLPage).
     static func frontMatterRange(_ ns: NSString) -> NSRange? {
         guard ns.hasPrefix("---\n") || ns.hasPrefix("---\r\n") else { return nil }
         var loc = ns.lineRange(for: NSRange(location: 0, length: 0)).length
@@ -182,10 +182,10 @@ enum LiveStyler {
         return nil
     }
 
-    /// Región mínima a re-estilar tras una edición, o nil si la estructura cambió fuera del bloque editado.
-    /// `edit` = rango reemplazado (en el texto anterior) y largo del texto nuevo.
-    /// Fuera del bloque editado nada puede cambiar de tipo ni de rango: si cambia (subrayado setext, definición
-    /// de referencia, continuación perezosa, fence que se abre…), se re-estila todo.
+    /// Minimal region to restyle after an edit, or nil if the structure changed outside the edited block.
+    /// `edit` = replaced range (in the previous text) and length of the new text.
+    /// Outside the edited block nothing may change kind or range: if something does (setext underline, link reference
+    /// definition, lazy continuation, a fence that opens…), everything is restyled.
     static func dirtyRegion(old: Signature, new: Signature, edit: NSRange, newLength: Int, textLength: Int) -> NSRange? {
         let delta = newLength - edit.length
         let oldEnd = NSMaxRange(edit), newEnd = edit.location + newLength
@@ -200,8 +200,8 @@ enum LiveStyler {
         guard prefix(old.blocks) == newPrefix, oldSuffix(old.blocks) == newSuffix else { return nil }
         var start = newPrefix.last.map { NSMaxRange($0.range) } ?? 0
         var end = newSuffix.first?.range.location ?? textLength
-        // Los bloques intermedios (viejos y nuevos) pueden extenderse sobre zonas que no cambiaron:
-        // la región debe cubrir también lo que antes estilaban.
+        // The blocks in between (old and new) may extend over areas that did not change:
+        // the region must also cover what they used to style.
         func toNew(_ x: Int) -> Int { x <= edit.location ? x : (x >= oldEnd ? x + delta : newEnd) }
         for b in old.blocks where !(NSMaxRange(b.range) < edit.location) && !(b.range.location > oldEnd) {
             start = min(start, toNew(b.range.location)); end = max(end, toNew(NSMaxRange(b.range)))
@@ -213,9 +213,9 @@ enum LiveStyler {
         return end >= start ? NSRange(location: start, length: end - start) : nil
     }
 
-    // MARK: Estilo
+    // MARK: Styling
 
-    /// Aplica estilos en `region` (líneas completas). Llamar entre beginEditing/endEditing.
+    /// Applies styles in `region` (whole lines). Call between beginEditing/endEditing.
     static func apply(to storage: NSTextStorage, parsed: Parsed, region: NSRange, style: LiveStyle) {
         let ns = storage.string as NSString
         var region = ns.lineRange(for: clamp(region, ns.length))
@@ -223,10 +223,10 @@ enum LiveStyler {
             storage.setAttributes(style.base, range: NSRange(location: 0, length: ns.length))
             return
         }
-        // Los bloques que tocan la región se re-estilan completos, así que la región se amplía a ellos
-        // antes de reiniciar atributos (algunas reglas dependen del atributo previo, p. ej. el tamaño de fuente).
+        // Blocks that touch the region are restyled in full, so the region is widened to cover them
+        // before resetting attributes (some rules depend on the previous attribute, e.g. the font size).
         var targets: [Markup] = []
-        // Iterar hasta estabilizar: ampliar la región puede alcanzar otro bloque que comparte línea.
+        // Iterate until stable: widening the region may reach another block that shares a line.
         var changed = true
         var taken = Set<Int>()
         var withFront = false
@@ -252,7 +252,7 @@ enum LiveStyler {
         for child in targets { w.visit(child, quote: 0) }
     }
 
-    /// Oculta los marcadores de `region` salvo los que tocan `active`.
+    /// Hides the markers in `region` except those touching `active`.
     static func conceal(_ storage: NSTextStorage, in region: NSRange, active: NSRange) {
         let region = clamp(region, storage.length)
         guard region.length > 0 else { return }
@@ -271,12 +271,12 @@ enum LiveStyler {
     }
 }
 
-// MARK: - Recorrido del AST
+// MARK: - AST traversal
 
 private struct Walker {
     let storage: NSTextStorage
     let ns: NSString
-    /// Copia única del texto para las expresiones regulares (puentear NSMutableString a String copia todo).
+    /// Single copy of the text for the regular expressions (bridging NSMutableString to String copies everything).
     let str: String
     let map: SourceMap
     let s: LiveStyle
@@ -287,20 +287,20 @@ private struct Walker {
 
     func range(_ m: Markup) -> NSRange? { map.range(m.range) }
 
-    // Utilidades -----------------------------------------------------------
+    // Helpers --------------------------------------------------------------
 
     func add(_ attrs: [NSAttributedString.Key: Any], _ r: NSRange) {
         let r = LiveStyler.clamp(r, ns.length)
         if r.length > 0 { storage.addAttributes(attrs, range: r) }
     }
 
-    /// Marcador: color atenuado y ocultable. Nunca incluye saltos de línea (ocultarlos uniría líneas).
+    /// Marker: dimmed color and hideable. Never includes line breaks (hiding them would join lines).
     func marker(_ r: NSRange) {
         var r = LiveStyler.clamp(r, ns.length)
         while r.length > 0, isNewline(ns.character(at: NSMaxRange(r) - 1)) { r.length -= 1 }
         guard r.length > 0 else { return }
         if ns.substring(with: r).contains(where: { $0 == "\n" || $0 == "\r" }) {
-            // Rango multilínea: se marca por líneas.
+            // Multi-line range: marked line by line.
             var loc = r.location
             while loc < NSMaxRange(r) {
                 let line = ns.lineRange(for: NSRange(location: loc, length: 0))
@@ -314,7 +314,7 @@ private struct Walker {
 
     func isNewline(_ c: unichar) -> Bool { c == 10 || c == 13 }
 
-    /// Rango del contenido de una línea (sin el salto final).
+    /// Range of a line's content (without the trailing line break).
     func lineContent(_ line: NSRange) -> NSRange {
         var r = line
         while r.length > 0, isNewline(ns.character(at: NSMaxRange(r) - 1)) { r.length -= 1 }
@@ -334,7 +334,7 @@ private struct Walker {
         return out
     }
 
-    /// Cambia el peso de todas las fuentes del rango, conservando tamaño y familia.
+    /// Changes the weight of every font in the range, keeping size and family.
     func setWeight(_ weight: CGFloat, _ r: NSRange) {
         let r = LiveStyler.clamp(r, ns.length)
         guard r.length > 0 else { return }
@@ -346,7 +346,7 @@ private struct Walker {
 
     func setParagraph(_ ps: NSParagraphStyle, _ r: NSRange) { add([.paragraphStyle: ps], ns.lineRange(for: r)) }
 
-    /// Oculta los delimitadores de un nodo en línea: desde su inicio hasta el primer hijo y desde el último hijo al final.
+    /// Hides an inline node's delimiters: from its start to the first child and from the last child to the end.
     func delimiters(_ m: Markup, _ r: NSRange) {
         let kids = Array(m.children).compactMap { range($0) }
         guard let first = kids.first, let last = kids.last else { return }
@@ -360,7 +360,7 @@ private struct Walker {
         return n
     }
 
-    // Bloques ----------------------------------------------------------------
+    // Blocks -----------------------------------------------------------------
 
     func frontMatter(_ r: NSRange) {
         add([.font: s.font(mono: true, size: s.codeSize * 0.92), .foregroundColor: s.color(s.p.muted)], r)
@@ -407,11 +407,11 @@ private struct Walker {
             marker(NSRange(location: first.location, length: n))
             if let m = Self.closingHashRE.firstMatch(in: str, range: first) { marker(m.range) }
         } else if lineSet.count > 1 {
-            // Setext: la línea de subrayado (=== o ---) es marcador.
+            // Setext: the underline line (=== or ---) is a marker.
             let underLine = lineSet[lineSet.count - 1]
             let under = lineContent(underLine)
             if NSIntersectionRange(under, r).length > 0 {
-                // Oculto, el subrayado deja una línea vacía: se reduce a una altura discreta.
+                // Once hidden, the underline leaves a blank line: it is shrunk to a small height.
                 add([.font: s.font(mono: false, size: s.size * 0.75)], underLine)
                 marker(under)
             }
@@ -421,7 +421,7 @@ private struct Walker {
 
     func blockQuote(_ b: BlockQuote, _ r: NSRange, depth: Int) {
         var barColor = s.p.bar
-        // Avisos de GitHub (> [!NOTE] …): título en color y en negrita.
+        // GitHub alerts (> [!NOTE] …): title in color and bold.
         if b.childCount > 0, let para = b.child(at: 0) as? Paragraph, para.childCount > 0,
            let t = para.child(at: 0) as? Markdown.Text, let kind = HTMLRenderer.alertKind(t.string), let tr = range(t) {
             barColor = Self.alertColor(kind)
@@ -439,7 +439,7 @@ private struct Walker {
             if let m = Self.quotePrefixRE.firstMatch(in: str, range: content) { marker(m.range) }
         }
         for child in b.children { visit(child, quote: depth) }
-        // El título del aviso se repinta después de los hijos (que reponen el color atenuado).
+        // The alert title is repainted after the children (which restore the dimmed color).
         if barColor != s.p.bar, let para = b.child(at: 0) as? Paragraph, let t = para.child(at: 0), let tr = range(t) {
             add([.foregroundColor: s.color(barColor)], tr)
         }
@@ -458,7 +458,7 @@ private struct Walker {
         let ch = r.location < ns.length ? ns.character(at: r.location) : 0
         let bullet = ch == 45 || ch == 42 || ch == 43 // - * +
         if let cb = item.checkbox {
-            // "- [ ] ": el guion queda invisible (conserva su ancho) y la casilla se dibuja sobre "[ ]".
+            // "- [ ] ": the dash becomes invisible (keeps its width) and the checkbox is drawn over "[ ]".
             let pre = ns.substring(with: prefix) as NSString
             let open = pre.range(of: "[")
             if bullet { add([.foregroundColor: clear], NSRange(location: r.location, length: 1)) }
@@ -477,7 +477,7 @@ private struct Walker {
             add([.foregroundColor: s.color(s.p.muted)], prefix)
         }
 
-        // Sangría colgante: las líneas que continúan se alinean con el texto, no con el marcador.
+        // Hanging indent: continuation lines align with the text, not with the marker.
         let font = s.font(mono: false, size: s.size)
         let lineStart = ns.lineRange(for: NSRange(location: r.location, length: 0)).location
         let lead = ns.substring(with: NSRange(location: lineStart, length: NSMaxRange(prefix) - lineStart))
@@ -521,7 +521,7 @@ private struct Walker {
                 }
             }
         }
-        // Resaltado con el mismo tokenizador del preview.
+        // Highlighting with the same tokenizer as the preview.
         let lang = String((c.language ?? "").split(separator: " ").first ?? "")
         guard !lang.isEmpty, body.length > 0 else { return }
         let code = ns.substring(with: body)
@@ -558,7 +558,7 @@ private struct Walker {
         for row in t.body.rows { for cell in row.cells { inline(cell, range(cell) ?? r) } }
     }
 
-    // En línea ---------------------------------------------------------------
+    // Inline -----------------------------------------------------------------
 
     func inline(_ m: Markup, _ r: NSRange) {
         for child in m.children {

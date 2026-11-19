@@ -17,7 +17,7 @@ enum ViewMode: String, CaseIterable, Identifiable {
     var help: String {
         switch self { case .write: "Write (⌘/)"; case .code: "Markdown (⌘/)"; case .split: "Split (⌥⌘/)" }
     }
-    /// Valor guardado → modo (el antiguo "preview" pasa a Write).
+    /// Stored value → mode (the old "preview" becomes Write).
     static func resolve(_ raw: String) -> ViewMode { ViewMode(rawValue: raw) ?? .write }
 }
 
@@ -57,7 +57,7 @@ struct EditorView: View {
             .background(bg)
             .overlay { if lock.isLocked { LockOverlay(lock: lock, palette: palette) } }
             .frame(minWidth: 560, minHeight: 360)
-            // Toda la ventana (también la barra de título) usa el color del tema, como Coffee.
+            // The whole window (title bar included) uses the theme color, like Coffee.
             .containerBackground(bg, for: .window)
             .toolbarBackgroundVisibility(.hidden, for: .windowToolbar)
             .preferredColorScheme(theme.isDark ? .dark : .light)
@@ -139,7 +139,7 @@ struct EditorView: View {
     }
 }
 
-/// Comandos del menú View: alternar modos con atajos, como Coffee.
+/// View menu commands: switch modes with shortcuts, like Coffee.
 struct ModeCommands: View {
     @FocusedBinding(\.viewMode) private var mode: String?
 

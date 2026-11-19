@@ -1,12 +1,12 @@
 import AppKit
 import SwiftUI
 
-/// Paleta única: alimenta el CSS del preview y los colores de los editores.
+/// Single palette: feeds the preview CSS and the editors' colors.
 struct Palette: Equatable {
     var dark: Bool
     var bg, fg, muted, rule, codeBg, codeFg, accent, bar, box, boxFg: String
 
-    // Colores de sintaxis según claro/oscuro.
+    // Syntax colors for light/dark.
     var k: String { dark ? "#e0905f" : "#a2432b" }
     var s: String { dark ? "#a9c27c" : "#3f7a3a" }
     var c: String { dark ? "#7f786d" : "#8b867c" }
@@ -22,7 +22,7 @@ struct Palette: Equatable {
     }
 }
 
-/// Temas fijos (cada uno es claro u oscuro; la apariencia del sistema no interviene).
+/// Fixed themes (each one is light or dark; the system appearance plays no part).
 enum AppTheme: String, CaseIterable, Identifiable {
     case latte, paper, matcha, snow, rose, sky
     case roast, espresso, midnight, graphite, forest, plum, ink
@@ -41,7 +41,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
         }
     }
 
-    /// Valor guardado → tema. Migra el antiguo "coffee" (que seguía al sistema) según la apariencia que tenía elegida.
+    /// Stored value → theme. Migrates the old "coffee" (which followed the system) based on the appearance that was selected.
     static func resolve(_ raw: String) -> AppTheme {
         if let t = AppTheme(rawValue: raw) { return t }
         if raw == "coffee" { return UserDefaults.standard.string(forKey: "appearance") == "dark" ? .roast : .latte }
@@ -72,7 +72,7 @@ enum AppTheme: String, CaseIterable, Identifiable {
     }
 }
 
-// MARK: - Fuentes
+// MARK: - Fonts
 
 enum TextFont: String, CaseIterable, Identifiable {
     case geist, system, newYork, charter, avenir
@@ -80,7 +80,7 @@ enum TextFont: String, CaseIterable, Identifiable {
     var title: String {
         switch self { case .geist: "Geist"; case .system: "SF Pro"; case .newYork: "New York"; case .charter: "Charter"; case .avenir: "Avenir Next" }
     }
-    /// Pila CSS (valores fijos, nunca datos del usuario).
+    /// CSS font stack (fixed values, never user data).
     var css: String {
         switch self {
         case .geist: "'Geist',-apple-system,system-ui,sans-serif"
@@ -107,11 +107,11 @@ enum CodeFont: String, CaseIterable, Identifiable {
     }
 }
 
-/// Fuentes elegidas en Ajustes (independientes del tema de color).
+/// Fonts chosen in Settings (independent of the color theme).
 struct FontSettings: Equatable {
     var text: TextFont = .geist
     var code: CodeFont = .geistMono
-    /// Tamaño del texto del modo Write (el preview usa +1 px y el modo Markdown −2 pt).
+    /// Write mode text size (the preview uses +1 px and Markdown mode −2 pt).
     var size: CGFloat = 16
 
     static let sizes: ClosedRange<Double> = 13...22
@@ -126,7 +126,7 @@ struct FontSettings: Equatable {
         self.size = CGFloat(min(max(size, Self.sizes.lowerBound), Self.sizes.upperBound))
     }
 
-    /// CSS para el preview y el HTML exportado.
+    /// CSS for the preview and the exported HTML.
     func css(includeSize: Bool = true) -> String {
         "body{font-family:\(text.css)\(includeSize ? ";font-size:\(Int(size) + 1)px" : "")}"
         + "code,kbd,pre code,pre .lang{font-family:\(code.css)}"
@@ -185,7 +185,7 @@ extension NSColor {
 }
 
 enum AppearanceController {
-    /// La apariencia de la app la decide el tema (claro u oscuro), no el sistema.
+    /// The app's appearance is decided by the theme (light or dark), not the system.
     @MainActor static func apply(theme: AppTheme) {
         NSApp.appearance = NSAppearance(named: theme.isDark ? .darkAqua : .aqua)
     }

@@ -1,7 +1,7 @@
 import Foundation
 
-/// Convierte un subconjunto de LaTeX a MathML (renderizado nativo por WebKit, sin JavaScript).
-/// Seguridad: la salida se construye solo con etiquetas fijas y texto escapado; límites de tamaño y profundidad.
+/// Converts a subset of LaTeX to MathML (rendered natively by WebKit, without JavaScript).
+/// Security: the output is built only from fixed tags and escaped text; size and depth limits.
 enum LaTeX {
     static func mathML(_ src: String, display: Bool) -> String {
         var p = Parser(toks: tokenize(String(src.prefix(4000))))
@@ -37,7 +37,7 @@ enum LaTeX {
 
     static func esc(_ s: String) -> String { HTMLRenderer.escape(s) }
 
-    // MARK: Tablas de símbolos
+    // MARK: Symbol tables
 
     static let greek: [String: String] = [
         "\\alpha": "α", "\\beta": "β", "\\gamma": "γ", "\\delta": "δ", "\\epsilon": "ϵ", "\\varepsilon": "ε",
@@ -69,7 +69,7 @@ enum LaTeX {
         "\\#": "#", "\\_": "_", "\\$": "$", "\\mid": "∣", "\\nmid": "∤"
     ]
 
-    /// Operadores grandes: (símbolo, límites arriba/abajo).
+    /// Large operators: (symbol, limits above/below).
     static let bigOps: [String: (String, Bool)] = [
         "\\sum": ("∑", true), "\\prod": ("∏", true), "\\coprod": ("∐", true),
         "\\bigcup": ("⋃", true), "\\bigcap": ("⋂", true), "\\bigoplus": ("⨁", true),
@@ -77,7 +77,7 @@ enum LaTeX {
         "\\int": ("∫", false), "\\iint": ("∬", false), "\\iiint": ("∭", false), "\\oint": ("∮", false)
     ]
 
-    /// Funciones con nombre; true si sus límites van debajo.
+    /// Named functions; true if their limits go below.
     static let funcs: [String: Bool] = [
         "sin": false, "cos": false, "tan": false, "cot": false, "sec": false, "csc": false,
         "arcsin": false, "arccos": false, "arctan": false, "sinh": false, "cosh": false, "tanh": false,
@@ -162,7 +162,7 @@ enum LaTeX {
             return atom().ml
         }
 
-        /// En "{": consume hasta la "}" correspondiente.
+        /// At "{": consumes up to the matching "}".
         mutating func group() -> String {
             i += 1
             depth += 1
@@ -259,7 +259,7 @@ enum LaTeX {
             if t.hasPrefix("\\") {
                 let name = String(t.dropFirst())
                 if let lim = LaTeX.funcs[name] {
-                    // U+2061 (aplicación de función) deja el espacio fino entre "sin" y su argumento.
+                    // U+2061 (function application) leaves the thin space between "sin" and its argument.
                     return Atom(ml: "<mi mathvariant=\"normal\">\(name)</mi>" + (lim ? "" : "<mo>\u{2061}</mo>"), limits: lim)
                 }
                 return Atom(ml: "<mi mathvariant=\"normal\">\(LaTeX.esc(name))</mi>")
@@ -320,7 +320,7 @@ enum LaTeX {
     }
 }
 
-/// Saca las fórmulas del Markdown antes de parsear (respetando código) y las vuelve a insertar después.
+/// Pulls the formulas out of the Markdown before parsing (respecting code) and reinserts them afterwards.
 enum MathExtractor {
     typealias Item = (display: Bool, src: String)
 

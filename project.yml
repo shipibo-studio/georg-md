@@ -13,7 +13,7 @@ settings:
     DEVELOPMENT_TEAM: 34BRMF8X9A
     CODE_SIGN_STYLE: Automatic
     ENABLE_HARDENED_RUNTIME: YES
-    # Versión única para app, extensión y CLI (scripts/release.sh las sobrescribe por línea de comandos).
+    # Single version for the app, the extension and the CLI (scripts/release.sh overrides it on the command line).
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
 targets:
@@ -28,7 +28,7 @@ targets:
     dependencies:
       - target: GeorgMDPreview
         embed: true
-      # Herramienta de línea de comandos `georg` en Contents/Helpers (se enlaza a /usr/local/bin a mano).
+      # `georg` command-line tool in Contents/Helpers (linked into /usr/local/bin by hand).
       - target: georg
         embed: true
         codeSign: true
@@ -43,7 +43,7 @@ targets:
         com.apple.security.app-sandbox: true
         com.apple.security.files.user-selected.read-write: true
         com.apple.security.network.client: true
-        # Lectura de imágenes hermanas del .md; ImageLoader solo lee archivos de imagen (extensión + magic bytes).
+        # Read access to images next to the .md; ImageLoader only reads image files (extension + magic bytes).
         com.apple.security.temporary-exception.files.absolute-path.read-only:
           - /
     info:
@@ -53,7 +53,7 @@ targets:
         CFBundleName: Georg md
         CFBundleShortVersionString: $(MARKETING_VERSION)
         CFBundleVersion: $(CURRENT_PROJECT_VERSION)
-        # Releases públicos donde Settings → About busca nuevas versiones.
+        # Public releases where Settings → About looks for new versions.
         GeorgReleasesRepo: shipibo-studio/georg-md
         LSApplicationCategoryType: public.app-category.productivity
         NSPrincipalClass: NSApplication
@@ -114,7 +114,7 @@ targets:
       base:
         PRODUCT_NAME: Georg md Preview
         PRODUCT_BUNDLE_IDENTIFIER: cc.dasgeorg.md.preview
-  # Solo desarrollo: exporta PDF/HTML y rasteriza páginas sin sandbox (no se embebe ni distribuye).
+  # Development only: exports PDF/HTML and rasterizes pages without a sandbox (never embedded or distributed).
   GeorgDevTool:
     type: application
     platform: macOS

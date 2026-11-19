@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Editor de texto Markdown (modo Markdown y panel izquierdo de Split): monoespaciada, marcadores atenuados.
+/// Markdown text editor (Markdown mode and the left pane of Split): monospaced, dimmed markers.
 struct CodeEditor: NSViewRepresentable {
     @Binding var text: String
     var palette: Palette
@@ -86,7 +86,7 @@ struct CodeEditor: NSViewRepresentable {
     }
 }
 
-/// NSTextView con la columna de texto centrada cuando la ventana es ancha.
+/// NSTextView with the text column centered when the window is wide.
 final class CenteredTextView: NSTextView {
     static let column: CGFloat = 760
 
@@ -109,7 +109,7 @@ enum MarkdownStyler {
                 .ligature: 0, .paragraphStyle: ps]
     }
 
-    /// (expresión, grupos a atenuar, grupo a resaltar, tipo)
+    /// (expression, groups to dim, group to highlight, kind)
     private static let rules: [(NSRegularExpression, String)] = {
         func re(_ p: String) -> NSRegularExpression { try! NSRegularExpression(pattern: p, options: [.anchorsMatchLines]) }
         return [
@@ -191,7 +191,7 @@ enum MarkdownStyler {
                 }
             }
         }
-        // Bloques de código: se pintan al final para que prevalezcan sobre las demás reglas.
+        // Code blocks: painted last so they take precedence over the other rules.
         let base = fonts.font(mono: true, size: size(fonts))
         var inFence = false
         text.enumerateSubstrings(in: full, options: [.byLines, .substringNotRequired]) { _, lineRange, enclosing, _ in

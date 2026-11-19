@@ -1,12 +1,12 @@
 import AppKit
 
-/// Editor del modo "Escribir": un único texto editable donde el Markdown se ve formateado.
-/// Usa TextKit 1 (NSLayoutManager) a propósito: permite ocultar marcadores con glifos nulos, dibujar
-/// decoraciones por rango y hacer hit-testing exacto de casillas; TextKit 2 no expone eso de forma estable.
+/// "Write" mode editor: a single editable text where the Markdown appears formatted.
+/// Uses TextKit 1 (NSLayoutManager) on purpose: it allows hiding markers with null glyphs, drawing
+/// per-range decorations and exact hit-testing of checkboxes; TextKit 2 does not expose that in a stable way.
 final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
-    /// Ancho máximo de la columna de texto (estilo Coffee).
+    /// Maximum width of the text column (Coffee style).
     static let column: CGFloat = 700
-    /// Desde este tamaño el re-estilado se agrupa (debounce) para no bloquear la escritura.
+    /// From this size on, restyling is grouped (debounced) so it does not block typing.
     static let debounceThreshold = 30_000
 
     var palette: Palette {
@@ -24,7 +24,7 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
     private var inEdit = false
     private var revealed = NSRange(location: 0, length: 0)
     private var debounce: DispatchWorkItem?
-    /// NSTextView no retiene su NSTextStorage cuando se arma la pila de TextKit 1 a mano.
+    /// NSTextView does not retain its NSTextStorage when the TextKit 1 stack is assembled by hand.
     private var ownedStorage: NSTextStorage?
 
     static func makeScrollable(palette: Palette) -> (NSScrollView, LiveTextView) {
@@ -77,9 +77,9 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
 
     required init?(coder: NSCoder) { nil }
 
-    // MARK: Contenido
+    // MARK: Content
 
-    /// Reemplaza todo el texto (carga inicial o cambio externo) y re-estila completo.
+    /// Replaces the whole text (initial load or external change) and restyles everything.
     func setMarkdown(_ text: String) {
         let sel = selectedRange()
         textStorage?.replaceCharacters(in: NSRange(location: 0, length: textStorage?.length ?? 0), with: text)
@@ -102,7 +102,7 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
         enclosingScrollView?.backgroundColor = NSColor(hex: palette.bg)
     }
 
-    // MARK: Re-estilado
+    // MARK: Restyling
 
     func restyleAll() {
         needsFull = true
@@ -138,13 +138,13 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
         let active = activeRange()
         let lineRegion = (storage.string as NSString).lineRange(for: region)
         LiveStyler.conceal(storage, in: lineRegion, active: active)
-        // La zona revelada anterior puede quedar fuera de la región re-estilada.
+        // The previously revealed area may fall outside the restyled region.
         let old = (storage.string as NSString).lineRange(for: LiveStyler.clamp(revealed, len))
         if NSIntersectionRange(old, lineRegion).length < old.length { LiveStyler.conceal(storage, in: old, active: active) }
         revealed = active
     }
 
-    /// Líneas donde los marcadores se muestran: las de la selección; dentro de un bloque de código, todo el bloque.
+    /// Lines where markers are shown: those of the selection; inside a code block, the whole block.
     private func activeRange() -> NSRange {
         guard let storage = textStorage else { return NSRange(location: 0, length: 0) }
         let ns = storage.string as NSString
@@ -171,7 +171,7 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
         sanitizeTypingAttributes()
     }
 
-    /// Lo que se escribe no hereda atributos internos (marcador oculto, decoraciones, enlaces).
+    /// Typed text does not inherit internal attributes (hidden marker, decorations, links).
     private func sanitizeTypingAttributes() {
         var t = typingAttributes
         let wasMarker = t[.mdMarker] != nil
@@ -211,7 +211,7 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
         super.setSelectedRanges(ranges, affinity: affinity, stillSelecting: stillSelecting)
         guard !stillSelecting else { return }
         if inEdit {
-            // Salvaguarda: si una edición aprobada nunca llega a didChangeText, no se debe congelar el ocultamiento.
+            // Safeguard: if an approved edit never reaches didChangeText, concealment must not stay frozen.
             DispatchQueue.main.async { [weak self] in
                 guard let self, self.inEdit else { return }
                 self.inEdit = false
@@ -222,7 +222,7 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
         }
     }
 
-    // MARK: Glifos ocultos
+    // MARK: Hidden glyphs
 
     func layoutManager(_ lm: NSLayoutManager, shouldGenerateGlyphs glyphs: UnsafePointer<CGGlyph>,
                        properties props: UnsafePointer<NSLayoutManager.GlyphProperty>,
@@ -240,7 +240,7 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
         return range.length
     }
 
-    // MARK: Columna centrada
+    // MARK: Centered column
 
     override func setFrameSize(_ newSize: NSSize) {
         let pad = max(32, ((newSize.width - Self.column) / 2).rounded())
@@ -248,7 +248,7 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
         super.setFrameSize(newSize)
     }
 
-    // MARK: Decoraciones
+    // MARK: Decorations
 
     override func drawBackground(in rect: NSRect) {
         super.drawBackground(in: rect)
@@ -319,8 +319,8 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
         }
     }
 
-    /// Fragmentos de línea de las líneas de `r`. Se calculan desde el primer glifo visible de cada línea:
-    /// TextKit 1 deja los glifos nulos del inicio de una línea (marcadores ocultos) en el fragmento anterior.
+    /// Line fragments of the lines in `r`. Computed from the first visible glyph of each line:
+    /// TextKit 1 leaves the null glyphs at the start of a line (hidden markers) in the previous fragment.
     private func fragments(_ r: NSRange) -> [NSRect] {
         guard let lm = layoutManager, let storage = textStorage else { return [] }
         let ns = storage.string as NSString
@@ -341,7 +341,7 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
         return out
     }
 
-    /// Rectángulo del primer glifo de `r`, su línea base (en coordenadas de la vista) y su fuente.
+    /// Rect of the first glyph of `r`, its baseline (in view coordinates) and its font.
     private func glyphBox(_ r: NSRange) -> (NSRect, CGFloat, NSFont)? {
         guard let lm = layoutManager, let tc = textContainer, let storage = textStorage, r.location < storage.length else { return nil }
         let o = textContainerOrigin
@@ -355,14 +355,14 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
 
     private func checkboxRect(_ r: NSRange) -> NSRect? {
         guard let (glyph, baseline, _) = glyphBox(r) else { return nil }
-        // Medidas del texto normal (los corchetes usan una monoespaciada pequeña para que "[ ]" y "[x]" midan igual).
+        // Metrics of the normal text (the brackets use a small monospaced font so "[ ]" and "[x]" have the same width).
         let body = style.font(mono: false, size: style.size)
         let side = (body.pointSize * 0.95).rounded()
         let cy = baseline - body.capHeight / 2
         return NSRect(x: (glyph.minX + (glyph.width - side) / 2).rounded(), y: (cy - side / 2).rounded(), width: side, height: side)
     }
 
-    // MARK: Ratón
+    // MARK: Mouse
 
     override func mouseDown(with event: NSEvent) {
         let pt = convert(event.locationInWindow, from: nil)
@@ -406,7 +406,7 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
         return found
     }
 
-    /// Enlace bajo el puntero: solo http, https y mailto (misma política que el preview).
+    /// Link under the pointer: only http, https and mailto (same policy as the preview).
     private func link(at pt: NSPoint) -> URL? {
         guard let i = charIndex(at: pt), let raw = textStorage?.attribute(.mdLink, at: i, effectiveRange: nil) as? String,
               let safe = HTMLRenderer.safeURL(raw), let url = URL(string: safe),
@@ -414,7 +414,7 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
         return url
     }
 
-    // MARK: Teclado
+    // MARK: Keyboard
 
     override func insertNewline(_ sender: Any?) {
         guard !inCodeBlock(), let e = EditAssist.newline(in: string as NSString, selection: selectedRange()) else {
@@ -454,7 +454,7 @@ final class LiveTextView: NSTextView, NSLayoutManagerDelegate {
         return (storage.attribute(.mdDeco, at: i, effectiveRange: nil) as? String) == "code"
     }
 
-    /// Aplica un reemplazo con deshacer y notificaciones normales.
+    /// Applies a replacement with undo and the usual notifications.
     func apply(_ e: EditAssist.Edit, actionName: String?) {
         let r = LiveStyler.clamp(e.range, textStorage?.length ?? 0)
         guard shouldChangeText(in: r, replacementString: e.text) else { return }

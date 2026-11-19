@@ -16,7 +16,7 @@ struct SettingsView: View {
     private var theme: AppTheme { AppTheme.resolve(themeRaw) }
     private var fonts: FontSettings { FontSettings(textRaw: fontTextRaw, codeRaw: fontCodeRaw, size: fontSize) }
 
-    /// Comando para enlazar la herramienta `georg` (rutas entre comillas simples, escapadas).
+    /// Command to link the `georg` tool (paths in single quotes, escaped).
     static var cliCommand: String {
         let helper = Bundle.main.bundleURL.appendingPathComponent("Contents/Helpers/georg").path
         let quoted = "'" + helper.replacingOccurrences(of: "'", with: "'\\''") + "'"
