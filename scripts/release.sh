@@ -43,10 +43,25 @@ DERIVED="$ROOT/build/release"
 DIST="$ROOT/dist"
 APP="$DERIVED/Build/Products/Release/Georg md.app"
 DMG="$DIST/Georg-md-$VERSION.dmg"
+NOTES="$DIST/Georg-md-$VERSION-notes.md"
 
 step() { printf '\n==> %s\n' "$*"; }
 
 step "Checking requirements"
+# The release notes are this version's section of CHANGELOG.md (without the link references);
+# publishing a version that has no section is refused before anything is built.
+mkdir -p "$DIST"
+awk -v head="## [$VERSION]" '
+  index($0, head) == 1 { found = 1; next }
+  found && /^## \[/ { exit }
+  found && /^\[[^]]+\]: https?:/ { next }
+  found { print }
+' CHANGELOG.md > "$NOTES"
+if [[ $PUBLISH == 1 ]] && ! grep -q '[^[:space:]]' "$NOTES"; then
+  echo "CHANGELOG.md has no section for $VERSION; add it before publishing." >&2
+  exit 1
+fi
+printf '\n---\n\nSigned with Developer ID and notarized by Apple. The SHA-256 of the disk image is in the attached `.sha256` file.\n' >> "$NOTES"
 security find-identity -v -p codesigning | grep -q "$IDENTITY: .*($TEAM)" \
   || { echo "Missing the '$IDENTITY' certificate for team $TEAM in the keychain." >&2; exit 1; }
 if [[ $NOTARIZE == 1 ]]; then
@@ -114,7 +129,7 @@ shasum -a 256 "$DMG" | tee "$DMG.sha256"
 if [[ $PUBLISH == 1 ]]; then
   step "Publishing v$VERSION to $REPO"
   gh release create "v$VERSION" "$DMG" "$DMG.sha256" --repo "$REPO" --title "Georg md $VERSION" \
-    --notes "Signed with Developer ID and notarized by Apple. SHA-256 in the attached .sha256 file."
+    --notes-file "$NOTES"
 fi
 
 step "Done: $DMG"

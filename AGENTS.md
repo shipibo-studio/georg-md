@@ -9,7 +9,7 @@ Instructions for AI coding agents working in this repository.
 - **Name:** always "Georg md", lowercase descriptor, as the georg-ds brand guide asks for every family product (`../georg-ds/docs/brand-manual.md`). Formerly "MD Editor" / `MDQuickLook` during development.
 - **Bundle id:** `cc.dasgeorg.md` (extension `.preview`, CLI `.cli`, dev tool `.devtool`). Moved from `cl.jorgeepunan.georgmd` after 1.0.0; never change it again: macOS treats a new bundle id as a different app (settings, default-app choice and Quick Look registration start over).
 - **Product, target and scheme:** `GeorgMD`; the app bundle is `Georg md.app`, the extension `Georg md Preview.appex`.
-- **Status:** released (1.0.0) and in personal use on two Macs. Distributed as a disk image signed with the Developer ID of team `34BRMF8X9A`, notarized and stapled, published on GitHub Releases. Everyday builds are ad-hoc.
+- **Status:** released (1.1.0, the first public release; a 1.0.0 under the old bundle id was withdrawn) and in personal use on two Macs. Distributed as a disk image signed with the Developer ID of team `34BRMF8X9A`, notarized and stapled, published on GitHub Releases. Everyday builds are ad-hoc.
 - **Origin:** a free reimplementation inspired by the writing experience of Coffee.app. Coffee is design reference only: no code or assets are copied, and its bundle and screenshots stay out of the repository (`rscs/` is git-ignored).
 
 ## Related repositories

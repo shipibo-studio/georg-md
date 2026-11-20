@@ -6,19 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
-### Added
+## [1.1.0] - 2026-11-19
 
-- **An app icon: the Georg md logo** from georg-ds 0.13.0, a lowercase g with its square in the fixed Georg md orange. Until now the app had no icon and showed the generic one in the Dock and Finder.
-- **The Georg md symbol in *Settings → About***, next to the version, in its light or dark variant.
-- **Georg md offers to be the default Markdown app.** On the first launch from an Applications folder it becomes the app that opens `.md` files, once; if you later pick another app it does not insist. *Settings → Default App* shows which app opens Markdown today and has a *Make Default* button.
-
-### Changed
-
-- **New bundle id: `cc.dasgeorg.md`**, the georg family's scheme (it was `cl.jorgeepunan.georgmd`). macOS treats it as a new app: settings, the default-app choice and the Quick Look registration start over, and Georg md 1.0.0 should be deleted after installing this version.
-
-## [1.0.0] - 2026-11-18
-
-First release: signed with Developer ID and notarized by Apple.
+First public release: signed with Developer ID and notarized by Apple. A 1.0.0 build was published briefly under the bundle id `cl.jorgeepunan.georgmd` and then withdrawn; if you installed it, delete it after installing 1.1.0 (macOS treats the two as different apps).
 
 ### Added
 
@@ -30,11 +20,13 @@ First release: signed with Developer ID and notarized by Apple.
 - **Inactivity lock** with Touch ID or the Mac password, also when the Mac sleeps or with ⌃⌘L.
 - **`georg` command-line helper** to open (and create) Markdown files from Terminal.
 - **Update check** in *Settings → About* against this repository's GitHub releases.
+- **Georg md offers to be the default Markdown app.** On the first launch from an Applications folder it becomes the app that opens `.md` files, once; if you later pick another app it does not insist. *Settings → Default App* shows which app opens Markdown today and has a *Make Default* button.
+- **An app icon: the Georg md logo** from georg-ds 0.13.0, a lowercase g with its square in the fixed Georg md orange, and the Georg md symbol in *Settings → About*.
 
 ### Security
 
 - Previews run without JavaScript, under a strict Content-Security-Policy, with navigation blocked; inline HTML goes through an allow-list sanitizer; images are size-capped, type-checked and never fetched from private hosts.
 - Pathologically nested documents are capped before parsing, so a crafted file cannot crash the app or the Quick Look extension.
 
-[Unreleased]: https://github.com/shipibo-studio/georg-md/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/shipibo-studio/georg-md/releases/tag/v1.0.0
+[Unreleased]: https://github.com/shipibo-studio/georg-md/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/shipibo-studio/georg-md/releases/tag/v1.1.0
