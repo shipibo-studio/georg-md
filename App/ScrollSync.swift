@@ -1,12 +1,12 @@
 import AppKit
 import WebKit
 
-/// Scroll proporcional entre el editor Markdown y el preview en el modo Split.
+/// Proportional scrolling between the Markdown editor and the preview in Split mode.
 ///
-/// El preview no ejecuta JavaScript de la página: la posición se lee y se fija con `evaluateJavaScript` en el
-/// mundo aislado `.defaultClient`, solo con números calculados aquí (nunca contenido del documento).
-/// WKWebView en macOS no expone su scroll, así que el desplazamiento del preview se detecta con un monitor
-/// local de eventos de rueda/trackpad sobre la vista.
+/// The preview runs no page JavaScript: the position is read and set with `evaluateJavaScript` in the
+/// isolated `.defaultClient` world, only with numbers computed here (never document content).
+/// WKWebView on macOS does not expose its scrolling, so preview scrolling is detected with a local
+/// monitor of scroll-wheel/trackpad events over the view.
 @MainActor
 final class ScrollSync {
     private weak var editor: NSScrollView?
@@ -51,7 +51,7 @@ final class ScrollSync {
         monitor = nil; observer = nil
     }
 
-    /// Fracción actual del editor (0…1), para reposicionar el preview tras recargarlo.
+    /// Current editor fraction (0…1), to reposition the preview after reloading it.
     var editorFraction: Double? {
         guard let s = editor, let doc = s.documentView else { return nil }
         let span = doc.frame.height - s.contentView.bounds.height
@@ -76,7 +76,7 @@ final class ScrollSync {
     // MARK: Preview → editor
 
     private func previewDidScroll() {
-        // Se aplica después de que WebKit procese el evento; se agrupan consultas para no saturar.
+        // Applied after WebKit processes the event; queries are coalesced to avoid flooding.
         if queryInFlight { queryPending = true; return }
         queryInFlight = true
         DispatchQueue.main.async { [weak self] in self?.queryPreview() }

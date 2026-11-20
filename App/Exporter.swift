@@ -2,10 +2,10 @@ import AppKit
 import UniformTypeIdentifiers
 import WebKit
 
-/// Exportación a HTML (autocontenido) y PDF paginado. Reutiliza el renderizador del preview.
+/// Export to self-contained HTML and paginated PDF. Reuses the preview renderer.
 @MainActor
 enum Exporter {
-    /// Hoja de impresión: paleta clara fija, sin márgenes de pantalla y con cortes de página razonables.
+    /// Print stylesheet: fixed light palette, no screen margins and sensible page breaks.
     private static func printCSS(_ fonts: FontSettings) -> String {
         AppTheme.latte.palette.css() + fonts.css(includeSize: false) + """
         html,body{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -28,8 +28,8 @@ enum Exporter {
     }
 
     static func exportPDF(markdown: String, baseDir: URL, paper: PaperSize, fonts: FontSettings = FontSettings(), to url: URL) async throws {
-        // En papel no se puede desplegar un <details>: se exporta abierto. Es seguro reemplazar el texto
-        // porque RawHTML solo emite la etiqueta literal `<details>` (en el texto del usuario va escapada como &lt;).
+        // A <details> cannot be expanded on paper, so it is exported open. Replacing the text is safe
+        // because RawHTML only emits the literal `<details>` tag (in the user's text it is escaped as &lt;).
         let page = await HTMLPage.render(markdown: markdown, baseDir: baseDir, extraCSS: printCSS(fonts))
             .replacingOccurrences(of: "<details>", with: "<details open>")
         let margin: CGFloat = 54
@@ -38,10 +38,10 @@ enum Exporter {
         let cfg = WKWebViewConfiguration()
         cfg.defaultWebpagePreferences.allowsContentJavaScript = false
         cfg.websiteDataStore = .nonPersistent()
-        // Sin esto WebKit omite fondos al imprimir (bloques de código, avisos, casillas marcadas).
+        // Without this WebKit skips backgrounds when printing (code blocks, alerts, checked boxes).
         cfg.preferences.shouldPrintBackgrounds = true
         let wv = WKWebView(frame: NSRect(origin: .zero, size: content), configuration: cfg)
-        // Ventana fuera de pantalla: WebKit necesita una jerarquía de vistas para paginar.
+        // Offscreen window: WebKit needs a view hierarchy to paginate.
         let window = NSWindow(contentRect: NSRect(origin: NSPoint(x: -20000, y: -20000), size: content),
                               styleMask: [.borderless], backing: .buffered, defer: false)
         window.isReleasedWhenClosed = false

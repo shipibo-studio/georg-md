@@ -1,7 +1,7 @@
-# Material de referencia de terceros (app y capturas): nunca al repo
+# Third-party reference material (app and screenshots): never in the repo
 rscs/
 
-# Generado
+# Generated
 build/
 dist/
 DerivedData/
@@ -12,6 +12,6 @@ xcuserdata/
 *.zip
 *.sha256
 
-# Sistema / local
+# System / local
 .DS_Store
 .claude/settings.local.json

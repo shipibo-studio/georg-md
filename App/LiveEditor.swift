@@ -1,7 +1,7 @@
 import AppKit
 import SwiftUI
 
-/// Envoltorio SwiftUI del modo "Escribir" (LiveTextView).
+/// SwiftUI wrapper for "Write" mode (LiveTextView).
 struct LiveEditor: NSViewRepresentable {
     @Binding var text: String
     var palette: Palette
@@ -25,7 +25,7 @@ struct LiveEditor: NSViewRepresentable {
         guard let tv = c.textView else { return }
         if tv.palette != palette { tv.palette = palette }
         if tv.fonts != fonts { tv.fonts = fonts }
-        // Cambio externo (p. ej. revertir a una versión): se recarga todo el texto.
+        // External change (e.g. reverting to a version): the whole text is reloaded.
         if tv.string != text { tv.setMarkdown(text) }
     }
 

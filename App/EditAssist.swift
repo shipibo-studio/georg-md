@@ -1,12 +1,12 @@
 import Foundation
 
-/// Ediciones asistidas del modo Escribir. Funciones puras: reciben el texto y la selección y devuelven
-/// el reemplazo a aplicar (la vista lo aplica con soporte de deshacer).
+/// Assisted edits for Write mode. Pure functions: they take the text and the selection and return
+/// the replacement to apply (the view applies it with undo support).
 enum EditAssist {
     struct Edit: Equatable {
-        var range: NSRange      // rango a reemplazar, en el texto original
-        var text: String        // texto nuevo
-        var selection: NSRange  // selección resultante, en el texto nuevo
+        var range: NSRange      // range to replace, in the original text
+        var text: String        // new text
+        var selection: NSRange  // resulting selection, in the new text
     }
 
     static let indentUnit = "    "
@@ -24,7 +24,7 @@ enum EditAssist {
         listRE.firstMatch(in: s, range: NSRange(location: 0, length: (s as NSString).length)) != nil
     }
 
-    /// Return al final de un elemento de lista o cita: continúa el marcador. Si el elemento está vacío, lo termina.
+    /// Return at the end of a list item or quote: continues the marker. If the item is empty, ends it.
     static func newline(in ns: NSString, selection sel: NSRange) -> Edit? {
         guard sel.length == 0, sel.location <= ns.length else { return nil }
         let line = content(of: ns.lineRange(for: sel), in: ns)
@@ -64,7 +64,7 @@ enum EditAssist {
         return nil
     }
 
-    /// Tab / Shift-Tab sobre líneas de lista: sangra o quita sangría a todas las líneas de lista seleccionadas.
+    /// Tab / Shift-Tab on list lines: indents or outdents every selected list line.
     static func indent(in ns: NSString, selection sel: NSRange, outdent: Bool) -> Edit? {
         guard sel.location <= ns.length else { return nil }
         let block = ns.lineRange(for: sel)
@@ -104,7 +104,7 @@ enum EditAssist {
         return Edit(range: block, text: out, selection: NSRange(location: newLoc, length: sel.length == 0 ? 0 : newLen))
     }
 
-    /// ⌘B / ⌘I: envuelve la selección con el marcador, o lo quita si ya está envuelta.
+    /// ⌘B / ⌘I: wraps the selection in the marker, or removes it if already wrapped.
     static func toggleWrap(in ns: NSString, selection sel: NSRange, marker: String) -> Edit {
         let m = (marker as NSString).length
         let sel = NSRange(location: min(sel.location, ns.length), length: min(sel.length, ns.length - min(sel.location, ns.length)))

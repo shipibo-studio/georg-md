@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# Georg md — build Release firmado con Developer ID, notarizado y empaquetado en .dmg.
+# Georg md — Release build signed with Developer ID, notarized and packaged as a .dmg.
 #
-# Uso:
-#   scripts/release.sh 1.0.0                 build + firma + notarización + .dmg en dist/
-#   scripts/release.sh 1.0.0 --skip-notarize solo build + firma + .dmg (prueba local, Gatekeeper lo rechazará)
-#   scripts/release.sh 1.0.0 --publish       además crea el release v1.0.0 en GitHub con el .dmg
+# Usage:
+#   scripts/release.sh 1.0.0                 build + sign + notarize + .dmg in dist/
+#   scripts/release.sh 1.0.0 --skip-notarize build + sign + .dmg only (local test, Gatekeeper will reject it)
+#   scripts/release.sh 1.0.0 --publish       also creates the v1.0.0 release on GitHub with the .dmg
 #
-# Requisitos: certificado "Developer ID Application" del equipo en el llavero y un perfil de notarytool:
+# Requirements: the team's "Developer ID Application" certificate in the keychain and a notarytool profile:
 #   xcrun notarytool store-credentials georg-md --apple-id <apple-id> --team-id 34BRMF8X9A
-# (pide una contraseña específica de app de appleid.apple.com). Otro nombre de perfil: NOTARY_PROFILE=…
+# (it asks for an app-specific password from appleid.apple.com). Different profile name: NOTARY_PROFILE=…
 set -euo pipefail
 
 VERSION="${1:-}"
@@ -19,15 +19,15 @@ for arg in "$@"; do
   case "$arg" in
     --skip-notarize) NOTARIZE=0 ;;
     --publish) PUBLISH=1 ;;
-    *) echo "Opción desconocida: $arg" >&2; exit 2 ;;
+    *) echo "Unknown option: $arg" >&2; exit 2 ;;
   esac
 done
 if [[ ! "$VERSION" =~ ^[0-9]+(\.[0-9]+){1,3}$ ]]; then
-  echo "Uso: scripts/release.sh <versión, p. ej. 1.0.0> [--skip-notarize] [--publish]" >&2
+  echo "Usage: scripts/release.sh <version, e.g. 1.0.0> [--skip-notarize] [--publish]" >&2
   exit 2
 fi
 if [[ $PUBLISH == 1 && $NOTARIZE == 0 ]]; then
-  echo "No se publica un build sin notarizar." >&2
+  echo "Refusing to publish a build that is not notarized." >&2
   exit 2
 fi
 
@@ -35,7 +35,7 @@ TEAM="34BRMF8X9A"
 IDENTITY="Developer ID Application"
 PROFILE="${NOTARY_PROFILE:-georg-md}"
 REPO="shipibo-studio/georg-md"
-BUILD_NUMBER="$(date -u +%Y%m%d%H%M)"   # monótono, sin depender de git
+BUILD_NUMBER="$(date -u +%Y%m%d%H%M)"   # monotonic, independent of git
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -43,15 +43,30 @@ DERIVED="$ROOT/build/release"
 DIST="$ROOT/dist"
 APP="$DERIVED/Build/Products/Release/Georg md.app"
 DMG="$DIST/Georg-md-$VERSION.dmg"
+NOTES="$DIST/Georg-md-$VERSION-notes.md"
 
 step() { printf '\n==> %s\n' "$*"; }
 
-step "Comprobando requisitos"
+step "Checking requirements"
+# The release notes are this version's section of CHANGELOG.md (without the link references);
+# publishing a version that has no section is refused before anything is built.
+mkdir -p "$DIST"
+awk -v head="## [$VERSION]" '
+  index($0, head) == 1 { found = 1; next }
+  found && /^## \[/ { exit }
+  found && /^\[[^]]+\]: https?:/ { next }
+  found { print }
+' CHANGELOG.md > "$NOTES"
+if [[ $PUBLISH == 1 ]] && ! grep -q '[^[:space:]]' "$NOTES"; then
+  echo "CHANGELOG.md has no section for $VERSION; add it before publishing." >&2
+  exit 1
+fi
+printf '\n---\n\nSigned with Developer ID and notarized by Apple. The SHA-256 of the disk image is in the attached `.sha256` file.\n' >> "$NOTES"
 security find-identity -v -p codesigning | grep -q "$IDENTITY: .*($TEAM)" \
-  || { echo "Falta el certificado '$IDENTITY' del equipo $TEAM en el llavero." >&2; exit 1; }
+  || { echo "Missing the '$IDENTITY' certificate for team $TEAM in the keychain." >&2; exit 1; }
 if [[ $NOTARIZE == 1 ]]; then
   xcrun notarytool history --keychain-profile "$PROFILE" >/dev/null 2>&1 \
-    || { echo "No existe o no funciona el perfil de notarytool '$PROFILE'. Ver el encabezado de este script." >&2; exit 1; }
+    || { echo "The notarytool profile '$PROFILE' does not exist or does not work. See the header of this script." >&2; exit 1; }
 fi
 
 step "Build Release $VERSION ($BUILD_NUMBER)"
@@ -63,25 +78,25 @@ xcodebuild -project GeorgMD.xcodeproj -scheme GeorgMD -configuration Release \
   CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="$IDENTITY" DEVELOPMENT_TEAM="$TEAM" \
   OTHER_CODE_SIGN_FLAGS="--timestamp" CODE_SIGN_INJECT_BASE_ENTITLEMENTS=NO \
   build | grep -E "error:|warning:|\*\* BUILD" || true
-[[ -d "$APP" ]] || { echo "No se generó $APP" >&2; exit 1; }
+[[ -d "$APP" ]] || { echo "$APP was not built" >&2; exit 1; }
 
-step "Verificando firma"
+step "Verifying signatures"
 codesign --verify --deep --strict --verbose=2 "$APP"
 for bin in "$APP" "$APP/Contents/PlugIns/Georg md Preview.appex" "$APP/Contents/Helpers/georg"; do
   info="$(codesign -dvv "$bin" 2>&1)"
-  grep -q "Authority=Developer ID Application: .*($TEAM)" <<<"$info" || { echo "Firma incorrecta en $bin" >&2; exit 1; }
-  grep -q "flags=.*runtime" <<<"$info" || { echo "Sin hardened runtime: $bin" >&2; exit 1; }
-  grep -q "Timestamp=" <<<"$info" || { echo "Sin sello de tiempo: $bin" >&2; exit 1; }
+  grep -q "Authority=Developer ID Application: .*($TEAM)" <<<"$info" || { echo "Wrong signature on $bin" >&2; exit 1; }
+  grep -q "flags=.*runtime" <<<"$info" || { echo "No hardened runtime: $bin" >&2; exit 1; }
+  grep -q "Timestamp=" <<<"$info" || { echo "No timestamp: $bin" >&2; exit 1; }
   if codesign -d --entitlements - "$bin" 2>/dev/null | grep -q "get-task-allow"; then
-    echo "Entitlement de depuración (get-task-allow) presente en $bin" >&2; exit 1
+    echo "Debug entitlement (get-task-allow) present in $bin" >&2; exit 1
   fi
 done
-# La herramienta de desarrollo sin sandbox nunca debe viajar en el bundle.
-if find "$APP" -name "GeorgDevTool*" | grep -q .; then echo "GeorgDevTool dentro del bundle" >&2; exit 1; fi
+# The unsandboxed development tool must never ship inside the bundle.
+if find "$APP" -name "GeorgDevTool*" | grep -q .; then echo "GeorgDevTool inside the bundle" >&2; exit 1; fi
 
 mkdir -p "$DIST"
 if [[ $NOTARIZE == 1 ]]; then
-  step "Notarizando la app"
+  step "Notarizing the app"
   ZIP="$DIST/Georg-md-$VERSION-app.zip"
   rm -f "$ZIP"
   ditto -c -k --keepParent "$APP" "$ZIP"
@@ -90,7 +105,7 @@ if [[ $NOTARIZE == 1 ]]; then
   rm -f "$ZIP"
 fi
 
-step "Creando $DMG"
+step "Creating $DMG"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 ditto "$APP" "$STAGE/Georg md.app"
@@ -101,7 +116,7 @@ codesign --sign "$IDENTITY: Jorge Epuñan ($TEAM)" --timestamp "$DMG" 2>/dev/nul
   || codesign --sign "$IDENTITY" --timestamp "$DMG"
 
 if [[ $NOTARIZE == 1 ]]; then
-  step "Notarizando el .dmg"
+  step "Notarizing the .dmg"
   xcrun notarytool submit "$DMG" --keychain-profile "$PROFILE" --wait
   xcrun stapler staple "$DMG"
   step "Gatekeeper"
@@ -112,9 +127,9 @@ fi
 shasum -a 256 "$DMG" | tee "$DMG.sha256"
 
 if [[ $PUBLISH == 1 ]]; then
-  step "Publicando v$VERSION en $REPO"
+  step "Publishing v$VERSION to $REPO"
   gh release create "v$VERSION" "$DMG" "$DMG.sha256" --repo "$REPO" --title "Georg md $VERSION" \
-    --notes "Signed with Developer ID and notarized by Apple. SHA-256 in the attached .sha256 file."
+    --notes-file "$NOTES"
 fi
 
-step "Listo: $DMG"
+step "Done: $DMG"

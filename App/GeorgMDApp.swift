@@ -7,7 +7,7 @@ struct GeorgMDApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
     init() {
-        // Registra Geist para el editor (solo en este proceso).
+        // Registers Geist for the editor (in this process only).
         for name in ["Geist-Variable", "GeistMono-Variable"] {
             if let url = Bundle.main.url(forResource: name, withExtension: "ttf") {
                 CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
@@ -34,15 +34,30 @@ struct GeorgMDApp: App {
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    /// Modo de pruebas (solo Debug): con MDQ_EXPORT_IN y MDQ_EXPORT_OUT genera el PDF y termina.
-    /// Se usan variables de entorno porque macOS trata los argumentos con rutas como documentos a abrir.
+    /// Test mode (Debug only): with MDQ_EXPORT_IN and MDQ_EXPORT_OUT, generates the PDF and exits.
+    /// Environment variables are used because macOS treats path arguments as documents to open.
     func applicationDidFinishLaunching(_ notification: Notification) {
         MainActor.assumeIsolated {
             AppLock.shared.start()
+            DefaultApp.claimOnFirstLaunch()
             AppearanceController.apply(theme: AppTheme.resolve(UserDefaults.standard.string(forKey: "theme") ?? ""))
         }
         #if DEBUG
         let env = ProcessInfo.processInfo.environment
+        // Test (Debug only): can the sandboxed app set itself as the default for Markdown?
+        if env["GMD_TEST_DEFAULT"] != nil {
+            Task { @MainActor in
+                do {
+                    try await DefaultApp.makeDefault()
+                    print("DEFAULT OK isDefault=\(DefaultApp.isDefault) current=\(DefaultApp.current?.path ?? "-")")
+                    exit(0)
+                } catch {
+                    print("DEFAULT ERROR \(error)")
+                    exit(1)
+                }
+            }
+            return
+        }
         guard let inPath = env["MDQ_EXPORT_IN"], let outPath = env["MDQ_EXPORT_OUT"] else { return }
         let input = URL(fileURLWithPath: inPath), output = URL(fileURLWithPath: outPath)
         Task { @MainActor in

@@ -14,7 +14,7 @@ struct MarkdownDocument: FileDocument {
     init(text: String = "") { self.text = text }
 
     init(configuration: ReadConfiguration) throws {
-        // Si no es UTF-8 válido se rechaza: leerlo con reemplazos corrompería el archivo al guardar.
+        // Invalid UTF-8 is rejected: reading it with replacement characters would corrupt the file on save.
         guard let data = configuration.file.regularFileContents,
               let s = String(data: data, encoding: .utf8) else {
             throw CocoaError(.fileReadInapplicableStringEncoding)

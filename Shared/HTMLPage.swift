@@ -10,13 +10,13 @@ private struct ImageCollector: MarkupWalker {
     mutating func visitHTMLBlock(_ h: HTMLBlock) { sources += RawHTML.imageSources(in: h.rawHTML) }
 }
 
-/// Permite localizar el bundle (app o extensión) que compila este archivo, para cargar las fuentes.
+/// Lets us locate the bundle (app or extension) that compiles this file, to load the fonts.
 private final class BundleToken {}
 
 enum HTMLPage {
     static func render(markdown: String, baseDir: URL, extraCSS: String = "") async -> String {
         let (front, body) = splitFrontMatter(markdown)
-        // Recorta anidamientos patológicos antes de parsear (evita desbordar la pila; ver MarkdownLimits).
+        // Trims pathological nesting before parsing (avoids overflowing the stack; see MarkdownLimits).
         let (stripped, maths) = MathExtractor.extract(MarkdownLimits.capNesting(body))
         let document = Document(parsing: stripped)
         var collector = ImageCollector()
@@ -26,7 +26,7 @@ enum HTMLPage {
         let content = MathExtractor.restore(renderer.visit(document), maths)
         let fm = front.map { "<pre class=\"front\"><code>\(HTMLRenderer.escape($0))</code></pre>\n" } ?? ""
 
-        // CSP: sin scripts, sin red; solo estilos en línea, fuentes y datos embebidos.
+        // CSP: no scripts, no network; only inline styles, fonts and embedded data.
         return """
         <!doctype html>
         <html lang="en"><head><meta charset="utf-8">
@@ -37,7 +37,7 @@ enum HTMLPage {
         """
     }
 
-    /// Separa un bloque YAML inicial delimitado por `---`.
+    /// Splits off a leading YAML block delimited by `---`.
     private static func splitFrontMatter(_ s: String) -> (String?, String) {
         guard s.hasPrefix("---\n") || s.hasPrefix("---\r\n") else { return (nil, s) }
         let lines = s.split(separator: "\n", omittingEmptySubsequences: false)

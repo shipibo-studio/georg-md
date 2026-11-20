@@ -2,9 +2,9 @@ import AppKit
 import SwiftUI
 import WebKit
 
-/// Preview HTML renderizado con el mismo motor que la extensión de Quick Look.
-/// Seguridad: JavaScript de contenido desactivado, almacenamiento no persistente y navegación bloqueada
-/// (los enlaces http/https/mailto se abren en el navegador, nunca dentro de la vista).
+/// HTML preview rendered with the same engine as the Quick Look extension.
+/// Security: content JavaScript disabled, non-persistent storage and navigation blocked
+/// (http/https/mailto links open in the browser, never inside the view).
 struct PreviewWebView: NSViewRepresentable {
     let markdown: String
     let baseDir: URL
@@ -50,7 +50,7 @@ struct PreviewWebView: NSViewRepresentable {
                 guard !Task.isCancelled else { return }
                 let html = await HTMLPage.render(markdown: markdown, baseDir: baseDir, extraCSS: themeCSS)
                 guard !Task.isCancelled, let self, let wv = self.webView else { return }
-                // Conserva la posición de scroll al recargar mientras se escribe.
+                // Keeps the scroll position when reloading while typing.
                 let y = try? await wv.evaluateJavaScript("window.scrollY") as? Double
                 self.pendingScroll = y
                 wv.loadHTMLString(html, baseURL: nil)
@@ -59,7 +59,7 @@ struct PreviewWebView: NSViewRepresentable {
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             if let sync = scrollSync, let f = sync.editorFraction {
-                // En Split el preview sigue la posición del editor.
+                // In Split the preview follows the editor's position.
                 sync.scrollPreview(to: f)
             } else if let y = pendingScroll, y > 0 {
                 webView.evaluateJavaScript("window.scrollTo(0, \(Int(y)))", completionHandler: nil)

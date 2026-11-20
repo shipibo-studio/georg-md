@@ -8,8 +8,9 @@ Requires **macOS 15** or later. Signed with Developer ID and notarized by Apple.
 
 1. Download the latest `Georg-md-x.y.z.dmg` from [Releases](https://github.com/shipibo-studio/georg-md/releases).
 2. Open it and drag **Georg md** to Applications. Open it once.
-3. Quick Look: press Space on any `.md` file in Finder. If another app's preview shows up, enable **Georg md Preview** in System Settings → General → Login Items & Extensions → Quick Look.
-4. Command line (optional): Settings → Command Line shows the one-time command to link `georg` into `/usr/local/bin`. Then `georg notes.md` opens a file (and creates it if it doesn't exist).
+3. On first launch Georg md becomes the default app for Markdown files (only once; change it any time in Finder → Get Info → Open with, or back in Settings → Default App → Make Default).
+4. Quick Look: press Space on any `.md` file in Finder. If another app's preview shows up, enable **Georg md Preview** in System Settings → General → Login Items & Extensions → Quick Look.
+5. Command line (optional): Settings → Command Line shows the one-time command to link `georg` into `/usr/local/bin`. Then `georg notes.md` opens a file (and creates it if it doesn't exist).
 
 Settings → About shows the installed version and checks this repository for new releases.
 
@@ -40,19 +41,19 @@ Settings → About shows the installed version and checks this repository for ne
 Requires Xcode 16+ and [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`).
 
 ```sh
-xcodegen generate
-xcodebuild -project GeorgMD.xcodeproj -scheme GeorgMD -configuration Debug -derivedDataPath build build
-open "build/Build/Products/Debug/Georg md.app"
+make build   # ad-hoc signed Release build in build/DerivedData
+make test    # test suite (must report 0 failures)
+make run     # build and open
 ```
 
-Run `xcodegen generate` again after adding source files; the `.xcodeproj` is generated and not committed. Signing uses the team in `project.yml`; change `DEVELOPMENT_TEAM` to build under your own account.
+The `.xcodeproj` is generated from `project.yml` and not committed; every `make` target regenerates it. Everyday builds are ad-hoc signed, so no certificate is needed.
 
 ### Release
 
 ```sh
 xcrun notarytool store-credentials georg-md --apple-id <apple-id> --team-id <team-id>   # once
-scripts/release.sh 1.1.0             # signed + notarized .dmg in dist/
-scripts/release.sh 1.1.0 --publish   # also creates the GitHub release
+make release                          # signed + notarized .dmg in dist/ for MARKETING_VERSION
+scripts/release.sh 1.1.0 --publish    # also creates the GitHub release
 ```
 
 The script builds Release with the Developer ID certificate (hardened runtime, secure timestamp, no debug entitlements), notarizes and staples both the app and the `.dmg`, checks Gatekeeper, and writes a SHA-256 file. `--skip-notarize` makes a local, unnotarized build for testing.
@@ -62,9 +63,8 @@ The script builds Release with the Developer ID certificate (hardened runtime, s
 `GeorgDevTool` is a development-only helper (not sandboxed, never shipped). It renders and exports without touching the app's sandbox container. It's driven by environment variables because AppKit treats path arguments as documents to open:
 
 ```sh
-xcodebuild -project GeorgMD.xcodeproj -scheme GeorgDevTool -configuration Debug -derivedDataPath build build
-T=build/Build/Products/Debug/GeorgDevTool.app/Contents/MacOS/GeorgDevTool
-MDQ_IN=samples/test.md MDQ_OUT=/tmp/x MDQ_TASK=test $T                    # test suite (must report 0 failures)
+make test   # builds GeorgDevTool and runs the suite
+T=build/DerivedData/Build/Products/Debug/GeorgDevTool.app/Contents/MacOS/GeorgDevTool
 MDQ_IN=samples/math-code.md MDQ_OUT=/tmp/mc $T                           # PDF + one PNG per page
 MDQ_IN=samples/live.md MDQ_OUT=/tmp/live MDQ_TASK=live MDQ_THEME=midnight $T   # screenshot of Write mode
 ```
@@ -86,6 +86,7 @@ App/              macOS app (SwiftUI + AppKit)
   Exporter.swift       PDF and HTML export
   AppLock.swift        inactivity lock (LocalAuthentication)
   UpdateChecker.swift  GitHub Releases check
+  DefaultApp.swift     default app for Markdown (first launch + Settings button)
   Theme.swift          palettes, themes, fonts
   SettingsView.swift
 Extension/        Quick Look preview extension
@@ -104,3 +105,7 @@ scripts/          release script
 - Quick Look follows the system appearance, not the app theme.
 - No footnotes yet.
 - WebKit ignores `break-after: avoid` when printing, so a heading can end up alone at the bottom of a PDF page.
+
+## Contributing and security
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) (the georg family conventions), [AGENTS.md](AGENTS.md) for architecture notes, and [SECURITY.md](SECURITY.md) to report a vulnerability privately. Third-party components are listed in [CREDITS.md](CREDITS.md) and changes in [CHANGELOG.md](CHANGELOG.md).

@@ -1,11 +1,11 @@
 import AppKit
 import Foundation
 
-/// Consulta la última versión publicada en GitHub Releases.
+/// Checks the latest version published on GitHub Releases.
 ///
-/// Seguridad: sesión efímera sin cookies ni caché, tope de tamaño de respuesta, solo HTTPS, y los enlaces que
-/// se ofrecen deben apuntar a github.com. La app nunca descarga ni ejecuta el instalador: abre la página en el
-/// navegador y Gatekeeper verifica el .dmg firmado y notarizado.
+/// Security: ephemeral session with no cookies or cache, a response size cap, HTTPS only, and the links
+/// offered must point to github.com. The app never downloads or runs the installer: it opens the page in the
+/// browser and Gatekeeper verifies the signed, notarized .dmg.
 @MainActor
 final class UpdateChecker: ObservableObject {
     enum State: Equatable {
@@ -20,7 +20,7 @@ final class UpdateChecker: ObservableObject {
 
     static let current = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
     static let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
-    /// "propietario/repo", definido en Info.plist (GeorgReleasesRepo).
+    /// "owner/repo", defined in Info.plist (GeorgReleasesRepo).
     static let repo = Bundle.main.object(forInfoDictionaryKey: "GeorgReleasesRepo") as? String ?? ""
 
     private static let maxBytes = 1_000_000
@@ -34,7 +34,7 @@ final class UpdateChecker: ObservableObject {
         state = .checking
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("Georg-md-UpdateCheck", forHTTPHeaderField: "User-Agent") // GitHub exige User-Agent; genérico
+        request.setValue("Georg-md-UpdateCheck", forHTTPHeaderField: "User-Agent") // GitHub requires a User-Agent; generic
         let session = URLSession(configuration: .ephemeral)
         defer { session.finishTasksAndInvalidate() }
         do {
@@ -49,7 +49,7 @@ final class UpdateChecker: ObservableObject {
         }
     }
 
-    /// Interpreta la respuesta de la API (separado para poder probarlo sin red).
+    /// Interprets the API response (kept separate so it can be tested without network).
     nonisolated static func evaluate(_ data: Data, current: String) -> State {
         struct Asset: Decodable { let name: String; let browser_download_url: String }
         struct Release: Decodable { let tag_name: String; let html_url: String; let draft: Bool?; let prerelease: Bool?; let assets: [Asset]? }
@@ -71,13 +71,13 @@ final class UpdateChecker: ObservableObject {
         s.range(of: #"^\d{1,6}(\.\d{1,6}){0,3}$"#, options: .regularExpression) != nil
     }
 
-    /// Solo https://github.com/… (páginas de release y descargas de assets, que redirigen al CDN de GitHub).
+    /// Only https://github.com/… (release pages and asset downloads, which redirect to GitHub's CDN).
     nonisolated static func safeGitHubURL(_ s: String) -> URL? {
         guard let u = URL(string: s), u.scheme == "https", u.host?.lowercased() == "github.com", u.user == nil else { return nil }
         return u
     }
 
-    /// Compara versiones numéricas ("1.10" > "1.9"; "1.0" == "1.0.0").
+    /// Compares numeric versions ("1.10" > "1.9"; "1.0" == "1.0.0").
     nonisolated static func compare(_ a: String, _ b: String) -> ComparisonResult {
         let x = a.split(separator: ".").map { Int($0) ?? 0 }, y = b.split(separator: ".").map { Int($0) ?? 0 }
         for i in 0..<max(x.count, y.count) {

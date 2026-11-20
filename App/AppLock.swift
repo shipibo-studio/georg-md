@@ -2,10 +2,10 @@ import AppKit
 import LocalAuthentication
 import SwiftUI
 
-/// Bloqueo por inactividad (o manual) con Touch ID / contraseña del Mac.
+/// Lock after inactivity (or manually) with Touch ID / the Mac's password.
 ///
-/// Es una pantalla de privacidad: oculta los documentos abiertos y bloquea teclado, copiar y exportar mientras
-/// está activo. No cifra nada: los archivos en disco siguen siendo archivos Markdown normales.
+/// It is a privacy screen: it hides open documents and blocks the keyboard, copy and export while
+/// it is active. It encrypts nothing: files on disk remain ordinary Markdown files.
 @MainActor
 final class AppLock: ObservableObject {
     static let shared = AppLock()
@@ -21,14 +21,14 @@ final class AppLock: ObservableObject {
     private var timer: Timer?
     private var sleepObservers: [NSObjectProtocol] = []
 
-    /// Minutos de inactividad antes de bloquear (0 = nunca).
+    /// Minutes of inactivity before locking (0 = never).
     var minutes: Int { UserDefaults.standard.integer(forKey: Self.minutesKey) }
 
     func start() {
         guard monitor == nil else { return }
         monitor = NSEvent.addLocalMonitorForEvents(matching: [.keyDown, .leftMouseDown, .rightMouseDown, .otherMouseDown, .scrollWheel]) { [weak self] event in
             guard let self else { return event }
-            // Se extraen valores Sendable; el monitor local corre en el hilo principal.
+            // Sendable values are extracted; the local monitor runs on the main thread.
             let isKey = event.type == .keyDown
             let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask).rawValue
             let key = isKey ? (event.charactersIgnoringModifiers?.lowercased() ?? "") : ""
@@ -39,7 +39,7 @@ final class AppLock: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated { self?.tick() }
         }
-        // Al dormir el equipo o la pantalla se bloquea de inmediato (si el bloqueo está activado).
+        // When the computer or the display goes to sleep, lock immediately (if locking is enabled).
         let nc = NSWorkspace.shared.notificationCenter
         for name in [NSWorkspace.willSleepNotification, NSWorkspace.screensDidSleepNotification, NSWorkspace.sessionDidResignActiveNotification] {
             sleepObservers.append(nc.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
@@ -48,13 +48,13 @@ final class AppLock: ObservableObject {
         }
     }
 
-    /// true = descartar el evento (app bloqueada). Mientras está desbloqueada solo registra actividad.
+    /// true = discard the event (app locked). While unlocked it only records activity.
     private func shouldDrop(isKey: Bool, flags: UInt, key: String, keyCode: UInt16) -> Bool {
         guard isLocked else {
             lastActivity = Date()
             return false
         }
-        guard isKey else { return false } // los clics los absorbe la capa de bloqueo
+        guard isKey else { return false } // clicks are absorbed by the lock overlay
         if flags == NSEvent.ModifierFlags.command.rawValue, ["q", "h", "m"].contains(key) { return false }
         if keyCode == 36 || keyCode == 76 { Task { await unlock() } } // Return / Enter
         return true
@@ -70,7 +70,7 @@ final class AppLock: ObservableObject {
         isLocked = true
         lastError = nil
         for window in NSApp.windows {
-            // Sin primer respondedor, Copiar/Cortar del menú no tienen sobre qué actuar.
+            // Without a first responder, the menu's Copy/Cut have nothing to act on.
             window.makeFirstResponder(nil)
             for sheet in window.sheets { window.endSheet(sheet) }
         }
@@ -82,7 +82,7 @@ final class AppLock: ObservableObject {
         defer { isAuthenticating = false }
         let ctx = LAContext()
         var err: NSError?
-        // deviceOwnerAuthentication: Touch ID y, si no hay o falla, la contraseña del Mac.
+        // deviceOwnerAuthentication: Touch ID and, if unavailable or it fails, the Mac's password.
         guard ctx.canEvaluatePolicy(.deviceOwnerAuthentication, error: &err) else {
             lastError = err?.localizedDescription ?? "Authentication is not available."
             return
@@ -100,7 +100,7 @@ final class AppLock: ObservableObject {
     }
 }
 
-/// Capa que cubre el documento mientras la app está bloqueada.
+/// Overlay that covers the document while the app is locked.
 struct LockOverlay: View {
     @ObservedObject var lock: AppLock
     let palette: Palette
@@ -131,6 +131,6 @@ struct LockOverlay: View {
             }
         }
         .contentShape(Rectangle())
-        .onTapGesture {} // absorbe los clics para que no lleguen al editor
+        .onTapGesture {} // absorbs clicks so they do not reach the editor
     }
 }

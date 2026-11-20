@@ -1,8 +1,8 @@
 import Foundation
 
-/// Subconjunto seguro de HTML permitido dentro del Markdown (típico de README).
-/// Lista blanca de etiquetas y atributos; todo lo demás se muestra como texto escapado.
-/// Nunca pasan: scripts, estilos, manejadores on*, iframes, formularios, atributos style/class/id.
+/// Safe subset of HTML allowed inside the Markdown (typical of READMEs).
+/// Allowlist of tags and attributes; everything else is shown as escaped text.
+/// Never let through: scripts, styles, on* handlers, iframes, forms, style/class/id attributes.
 enum RawHTML {
     private static let allowed: Set<String> = [
         "b", "strong", "i", "em", "u", "s", "del", "ins", "mark", "kbd", "code", "sub", "sup", "small", "br", "hr",
@@ -26,12 +26,12 @@ enum RawHTML {
             for g in 2...4 where m.range(at: g).location != NSNotFound { value = ns.substring(with: m.range(at: g)) }
             out[name] = value.replacingOccurrences(of: "&amp;", with: "&")
         }
-        // Atributo booleano sin valor: <details open>
+        // Boolean attribute without a value: <details open>
         if s.range(of: #"(?i)(^|\s)open(\s|$)"#, options: .regularExpression) != nil, out["open"] == nil { out["open"] = "" }
         return out
     }
 
-    /// Orígenes de <img src=…> presentes en el HTML (para precargarlos).
+    /// Sources of <img src=…> present in the HTML (to preload them).
     static func imageSources(in raw: String) -> [String] {
         let ns = raw as NSString
         var out: [String] = []

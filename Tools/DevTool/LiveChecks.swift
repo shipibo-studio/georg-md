@@ -1,11 +1,11 @@
 import AppKit
 import Markdown
 
-// Pruebas y capturas del modo Escribir (solo herramienta de desarrollo).
+// Write mode tests and screenshots (development tool only).
 
 @MainActor
 enum LiveChecks {
-    /// Rasteriza el editor en vivo a PNG. `caretLine` (base 1) coloca el cursor en esa línea.
+    /// Rasterizes the live editor to PNG. `caretLine` (1-based) places the caret on that line.
     static func render(text: String, palette: Palette, fonts: FontSettings = FontSettings(), width: CGFloat, caretLine: Int?, to url: URL) throws {
         let (scroll, tv) = LiveTextView.makeScrollable(palette: palette)
         tv.fonts = fonts
@@ -48,7 +48,7 @@ enum LiveChecks {
         window.close()
     }
 
-    // MARK: Pruebas
+    // MARK: Tests
 
     private static var failures = 0
     private static var passes = 0
@@ -78,34 +78,34 @@ enum LiveChecks {
             styleInvariants(name, text, style)
             incrementalEquivalence(name, text, style)
         }
-        print("Pruebas: \(passes) OK, \(failures) fallas")
+        print("Tests: \(passes) passed, \(failures) failed")
         return failures == 0 ? 0 : 1
     }
 
     static func hostileDocs() -> [(String, String)] {
         var out: [(String, String)] = [
-            ("vacío", ""),
-            ("solo #", "#"),
-            ("fence sin cerrar", "```swift\nlet a = 1\n\nmás texto"),
+            ("empty", ""),
+            ("lone #", "#"),
+            ("unclosed fence", "```swift\nlet a = 1\n\nmás texto"),
             ("crlf", "# T\r\n\r\n- a\r\n- [x] b\r\n\r\n**n**\r\n"),
             ("emoji zwj", "# 👨‍👩‍👧 título\n\n**👍🏽** y `🇨🇱` [é](https://x.cl) *ñ*\n"),
-            ("nul y control", "a\u{0}b **c\u{1}** `\u{7}`\n"),
-            ("marcadores sueltos", "** * ` [ ]( ![ ~~ > - [ ] 1. ---\n"),
-            ("lista vacía", "- \n- [ ]\n1.\n"),
+            ("nul and control", "a\u{0}b **c\u{1}** `\u{7}`\n"),
+            ("stray markers", "** * ` [ ]( ![ ~~ > - [ ] 1. ---\n"),
+            ("empty list", "- \n- [ ]\n1.\n"),
             ("setext", "Hola\n===\n\nChao\n---\n"),
-            ("tabla rota", "| a | b\n|--\n| 1 |\n"),
+            ("broken table", "| a | b\n|--\n| 1 |\n"),
             ("html", "<div>\n<script>alert(1)</script>\n</div>\n<b>x</b>"),
             ("front matter", "---\ntitle: x\n---\n# H\n"),
-            ("front sin cierre", "---\ntitle: x\n# H\n"),
-            ("enlaces raros", "[a](javascript:alert(1)) [b](<sp ace>) <https://x.cl> [c][ref]\n\n[ref]: https://y.cl\n"),
+            ("unclosed front matter", "---\ntitle: x\n# H\n"),
+            ("odd links", "[a](javascript:alert(1)) [b](<sp ace>) <https://x.cl> [c][ref]\n\n[ref]: https://y.cl\n"),
         ]
-        out.append(("citas profundas", String(repeating: ">", count: 200) + " x\n"))
-        out.append(("listas profundas", (0..<60).map { String(repeating: "  ", count: $0) + "- n\($0)" }.joined(separator: "\n")))
-        out.append(("anidamiento extremo citas", String(repeating: ">", count: 20000) + " x\n"))
-        out.append(("anidamiento extremo listas", (0..<3000).map { String(repeating: "  ", count: $0) + "- n" }.joined(separator: "\n")))
-        out.append(("anidamiento extremo una línea", String(repeating: "- ", count: 5000) + "x\n" + String(repeating: "1. > ", count: 3000) + "y"))
-        out.append(("línea enorme", String(repeating: "**a** `b` ", count: 5000)))
-        out.append(("muchos enfasis", String(repeating: "*", count: 3000)))
+        out.append(("deep quotes", String(repeating: ">", count: 200) + " x\n"))
+        out.append(("deep lists", (0..<60).map { String(repeating: "  ", count: $0) + "- n\($0)" }.joined(separator: "\n")))
+        out.append(("extreme nesting, quotes", String(repeating: ">", count: 20000) + " x\n"))
+        out.append(("extreme nesting, lists", (0..<3000).map { String(repeating: "  ", count: $0) + "- n" }.joined(separator: "\n")))
+        out.append(("extreme nesting, single line", String(repeating: "- ", count: 5000) + "x\n" + String(repeating: "1. > ", count: 3000) + "y"))
+        out.append(("huge line", String(repeating: "**a** `b` ", count: 5000)))
+        out.append(("many emphasis markers", String(repeating: "*", count: 3000)))
         return out
     }
 
@@ -116,9 +116,9 @@ enum LiveChecks {
         let ns = text as NSString
         if let h = doc.child(at: 0), let strong = h.child(at: 1), let r = map.range(strong.range) {
             check(ns.substring(with: r) == "**negrita**", "SourceMap strong → \(ns.substring(with: r))")
-        } else { check(false, "SourceMap: nodos no encontrados") }
+        } else { check(false, "SourceMap: nodes not found") }
         if let h = doc.child(at: 0), let tail = h.child(at: 2), let r = map.range(tail.range) {
-            check(ns.substring(with: r) == " ñ 🙂", "SourceMap texto con emoji → \(ns.substring(with: r))")
+            check(ns.substring(with: r) == " ñ 🙂", "SourceMap text with emoji → \(ns.substring(with: r))")
         }
     }
 
@@ -127,72 +127,72 @@ enum LiveChecks {
             guard let e = EditAssist.newline(in: s as NSString, selection: NSRange(location: caret, length: 0)) else { return nil }
             return (s as NSString).replacingCharacters(in: e.range, with: e.text)
         }
-        check(nl("- uno", 5) == "- uno\n- ", "continúa viñeta")
-        check(nl("  * uno", 7) == "  * uno\n  * ", "continúa viñeta anidada")
-        check(nl("9. uno", 6) == "9. uno\n10. ", "incrementa numerada")
-        check(nl("3) uno", 6) == "3) uno\n4) ", "numerada con paréntesis")
-        check(nl("- [x] hecho", 11) == "- [x] hecho\n- [ ] ", "tarea nueva sin marcar")
-        check(nl("- ", 2) == "", "Return en elemento vacío termina la lista")
-        check(nl("> cita", 6) == "> cita\n> ", "continúa cita")
-        check(nl("> ", 2) == "", "Return en cita vacía la termina")
-        check(nl("texto", 5) == nil, "texto normal no se toca")
-        check(nl("- uno", 1) == nil, "caret dentro del marcador: Return normal")
+        check(nl("- uno", 5) == "- uno\n- ", "continues bullet")
+        check(nl("  * uno", 7) == "  * uno\n  * ", "continues nested bullet")
+        check(nl("9. uno", 6) == "9. uno\n10. ", "increments numbered item")
+        check(nl("3) uno", 6) == "3) uno\n4) ", "numbered item with parenthesis")
+        check(nl("- [x] hecho", 11) == "- [x] hecho\n- [ ] ", "new task is unchecked")
+        check(nl("- ", 2) == "", "Return on an empty item ends the list")
+        check(nl("> cita", 6) == "> cita\n> ", "continues quote")
+        check(nl("> ", 2) == "", "Return on an empty quote ends it")
+        check(nl("texto", 5) == nil, "plain text is left alone")
+        check(nl("- uno", 1) == nil, "caret inside the marker: normal Return")
 
         func ind(_ s: String, _ sel: NSRange, _ out: Bool) -> (String, NSRange)? {
             guard let e = EditAssist.indent(in: s as NSString, selection: sel, outdent: out) else { return nil }
             return ((s as NSString).replacingCharacters(in: e.range, with: e.text), e.selection)
         }
-        check(ind("- a", NSRange(location: 3, length: 0), false)?.0 == "    - a", "Tab sangra")
-        check(ind("- a", NSRange(location: 3, length: 0), false)?.1 == NSRange(location: 7, length: 0), "Tab mueve el cursor")
-        check(ind("    - a", NSRange(location: 7, length: 0), true)?.0 == "- a", "Shift-Tab quita sangría")
-        check(ind("- a\n- b\nc", NSRange(location: 0, length: 9), false)?.0 == "    - a\n    - b\nc", "Tab multi-línea solo en listas")
-        check(ind("texto", NSRange(location: 2, length: 0), false) == nil, "Tab fuera de lista: normal")
+        check(ind("- a", NSRange(location: 3, length: 0), false)?.0 == "    - a", "Tab indents")
+        check(ind("- a", NSRange(location: 3, length: 0), false)?.1 == NSRange(location: 7, length: 0), "Tab moves the caret")
+        check(ind("    - a", NSRange(location: 7, length: 0), true)?.0 == "- a", "Shift-Tab outdents")
+        check(ind("- a\n- b\nc", NSRange(location: 0, length: 9), false)?.0 == "    - a\n    - b\nc", "multi-line Tab only on lists")
+        check(ind("texto", NSRange(location: 2, length: 0), false) == nil, "Tab outside a list: normal")
 
         func wrap(_ s: String, _ sel: NSRange, _ m: String) -> String {
             let e = EditAssist.toggleWrap(in: s as NSString, selection: sel, marker: m)
             return (s as NSString).replacingCharacters(in: e.range, with: e.text)
         }
-        check(wrap("hola mundo", NSRange(location: 5, length: 5), "**") == "hola **mundo**", "⌘B envuelve")
-        check(wrap("hola **mundo**", NSRange(location: 7, length: 5), "**") == "hola mundo", "⌘B desenvuelve")
-        check(wrap("hola **mundo**", NSRange(location: 5, length: 9), "**") == "hola mundo", "⌘B desenvuelve selección con marcadores")
-        check(wrap("x", NSRange(location: 1, length: 0), "*") == "x**", "⌘I sin selección inserta par")
+        check(wrap("hola mundo", NSRange(location: 5, length: 5), "**") == "hola **mundo**", "⌘B wraps")
+        check(wrap("hola **mundo**", NSRange(location: 7, length: 5), "**") == "hola mundo", "⌘B unwraps")
+        check(wrap("hola **mundo**", NSRange(location: 5, length: 9), "**") == "hola mundo", "⌘B unwraps a selection that includes the markers")
+        check(wrap("x", NSRange(location: 1, length: 0), "*") == "x**", "⌘I with no selection inserts a pair")
     }
 
     static func updateTests() {
-        check(UpdateChecker.compare("1.10", "1.9") == .orderedDescending, "versión 1.10 > 1.9")
-        check(UpdateChecker.compare("1.0", "1.0.0") == .orderedSame, "versión 1.0 == 1.0.0")
-        check(UpdateChecker.isValidRepo("shipibo-studio/georg-md") && !UpdateChecker.isValidRepo("a/b/../c"), "repo válido")
-        check(UpdateChecker.safeGitHubURL("https://evil.example/x.dmg") == nil, "rechaza host ajeno")
-        check(UpdateChecker.safeGitHubURL("http://github.com/x") == nil, "rechaza http")
-        check(UpdateChecker.safeGitHubURL("https://user@github.com/x") == nil, "rechaza credenciales en URL")
+        check(UpdateChecker.compare("1.10", "1.9") == .orderedDescending, "version 1.10 > 1.9")
+        check(UpdateChecker.compare("1.0", "1.0.0") == .orderedSame, "version 1.0 == 1.0.0")
+        check(UpdateChecker.isValidRepo("shipibo-studio/georg-md") && !UpdateChecker.isValidRepo("a/b/../c"), "valid repo")
+        check(UpdateChecker.safeGitHubURL("https://evil.example/x.dmg") == nil, "rejects foreign host")
+        check(UpdateChecker.safeGitHubURL("http://github.com/x") == nil, "rejects http")
+        check(UpdateChecker.safeGitHubURL("https://user@github.com/x") == nil, "rejects credentials in URL")
         let newer = #"{"tag_name":"v1.2.0","html_url":"https://github.com/shipibo-studio/georg-md/releases/tag/v1.2.0","assets":[{"name":"Georg-md-1.2.0.dmg","browser_download_url":"https://github.com/shipibo-studio/georg-md/releases/download/v1.2.0/Georg-md-1.2.0.dmg"}]}"#
         if case .available(let v, _, let dl) = UpdateChecker.evaluate(Data(newer.utf8), current: "1.0.0") {
-            check(v == "1.2.0" && dl?.lastPathComponent == "Georg-md-1.2.0.dmg", "detecta versión nueva con .dmg")
-        } else { check(false, "detecta versión nueva") }
-        check(UpdateChecker.evaluate(Data(newer.utf8), current: "1.2") == .upToDate("1.2"), "misma versión: al día")
+            check(v == "1.2.0" && dl?.lastPathComponent == "Georg-md-1.2.0.dmg", "detects new version with .dmg")
+        } else { check(false, "detects new version") }
+        check(UpdateChecker.evaluate(Data(newer.utf8), current: "1.2") == .upToDate("1.2"), "same version: up to date")
         let evil = #"{"tag_name":"v9.0","html_url":"https://evil.example/r","assets":[]}"#
-        check(UpdateChecker.evaluate(Data(evil.utf8), current: "1.0") == .failed("Unexpected response."), "rechaza página fuera de GitHub")
+        check(UpdateChecker.evaluate(Data(evil.utf8), current: "1.0") == .failed("Unexpected response."), "rejects page outside GitHub")
         let badTag = #"{"tag_name":"v9.0<script>","html_url":"https://github.com/a/b","assets":[]}"#
-        check(UpdateChecker.evaluate(Data(badTag.utf8), current: "1.0") == .failed("Unexpected response."), "rechaza tag no numérico")
+        check(UpdateChecker.evaluate(Data(badTag.utf8), current: "1.0") == .failed("Unexpected response."), "rejects non-numeric tag")
         let pre = #"{"tag_name":"v9.0","html_url":"https://github.com/a/b","prerelease":true}"#
-        check(UpdateChecker.evaluate(Data(pre.utf8), current: "1.0") == .upToDate("1.0"), "ignora prerelease")
+        check(UpdateChecker.evaluate(Data(pre.utf8), current: "1.0") == .upToDate("1.0"), "ignores prerelease")
     }
 
     static func limitsTests() {
-        check(!MarkdownLimits.exceedsNesting("> > - a\n    - b\n1. x"), "límites: documento normal no se toca")
-        check(MarkdownLimits.capNesting("# T\n\n- a\n  - b") == "# T\n\n- a\n  - b", "límites: capNesting no altera lo normal")
-        check(MarkdownLimits.exceedsNesting(String(repeating: ">", count: 40) + " x"), "límites: 40 citas se detectan")
+        check(!MarkdownLimits.exceedsNesting("> > - a\n    - b\n1. x"), "limits: normal document is left alone")
+        check(MarkdownLimits.capNesting("# T\n\n- a\n  - b") == "# T\n\n- a\n  - b", "limits: capNesting leaves normal input unchanged")
+        check(MarkdownLimits.exceedsNesting(String(repeating: ">", count: 40) + " x"), "limits: 40 quotes are detected")
         let capped = MarkdownLimits.capNesting(String(repeating: "- ", count: 100) + "hola")
-        check(capped.hasSuffix("hola") && !MarkdownLimits.exceedsNesting(capped), "límites: recorta y conserva el contenido → \(capped.suffix(12))")
+        check(capped.hasSuffix("hola") && !MarkdownLimits.exceedsNesting(capped), "limits: trims and keeps the content → \(capped.suffix(12))")
     }
 
     static func highlighterTests() {
         let code = "let s = \"é🙂\" // c\nfunc f() {}"
         let toks = Highlighter.tokens(code, lang: "swift")
         let ns = code as NSString
-        check(toks.contains { $0.cls == "s" && ns.substring(with: $0.range) == "\"é🙂\"" }, "tokens: string con emoji")
-        check(toks.contains { $0.cls == "c" && ns.substring(with: $0.range) == "// c" }, "tokens: comentario")
-        check(Highlighter.html("a < b", lang: "swift") == "a &lt; b", "html escapa")
+        check(toks.contains { $0.cls == "s" && ns.substring(with: $0.range) == "\"é🙂\"" }, "tokens: string with emoji")
+        check(toks.contains { $0.cls == "c" && ns.substring(with: $0.range) == "// c" }, "tokens: comment")
+        check(Highlighter.html("a < b", lang: "swift") == "a &lt; b", "html escapes")
     }
 
     static func styled(_ text: String, _ style: LiveStyle) -> NSTextStorage {
@@ -206,18 +206,18 @@ enum LiveChecks {
 
     static func styleInvariants(_ name: String, _ text: String, _ style: LiveStyle) {
         let st = styled(text, style)
-        check(st.string == text, "[\(name)] estilar no cambia el texto")
+        check(st.string == text, "[\(name)] styling does not change the text")
         var newlineMarked = false
         st.enumerateAttribute(.mdMarker, in: NSRange(location: 0, length: st.length)) { v, r, _ in
             guard v != nil else { return }
             if (st.string as NSString).substring(with: r).contains(where: { $0 == "\n" || $0 == "\r" || $0 == "\r\n" }) { newlineMarked = true }
         }
-        check(!newlineMarked, "[\(name)] ningún marcador incluye saltos de línea")
+        check(!newlineMarked, "[\(name)] no marker includes line breaks")
         LiveStyler.conceal(st, in: NSRange(location: 0, length: st.length), active: NSRange(location: 0, length: 0))
-        check(st.string == text, "[\(name)] ocultar no cambia el texto")
+        check(st.string == text, "[\(name)] concealing does not change the text")
     }
 
-    /// Ediciones al azar (reproducibles): el re-estilado parcial debe dar lo mismo que uno completo.
+    /// Random (reproducible) edits: partial restyling must give the same result as a full restyle.
     static func incrementalEquivalence(_ name: String, _ text: String, _ style: LiveStyle) {
         guard (text as NSString).length < 20_000 else { return }
         var rng = SplitMix(seed: UInt64(truncatingIfNeeded: text.utf8.count &* 2654435761 &+ 7))
@@ -232,7 +232,7 @@ enum LiveChecks {
             let maxDel = min(3, ns.length - loc)
             var del = maxDel > 0 ? Int(rng.next() % UInt64(maxDel + 1)) : 0
             var r = NSRange(location: loc, length: del)
-            // No partir pares sustitutos ni grafemas.
+            // Do not split surrogate pairs or graphemes.
             if r.length > 0 { r = ns.rangeOfComposedCharacterSequences(for: r) }
             else if loc < ns.length { r.location = ns.rangeOfComposedCharacterSequence(at: loc).location }
             del = r.length
@@ -249,19 +249,19 @@ enum LiveChecks {
             sig = parsed.signature
             let full = styled(current, style)
             if !st.isEqual(to: full) {
-                check(false, "[\(name)] parcial ≠ completo tras reemplazar \(r) por \(ins.debugDescription) región=\(String(describing: region))")
+                check(false, "[\(name)] partial ≠ full after replacing \(r) with \(ins.debugDescription) region=\(String(describing: region))")
                 var i = 0
                 while i < st.length {
                     var r1 = NSRange(), r2 = NSRange()
                     let a1 = st.attributes(at: i, effectiveRange: &r1), a2 = full.attributes(at: i, effectiveRange: &r2)
                     if !(a1 as NSDictionary).isEqual(to: a2) {
                         let ctx = (current as NSString).substring(with: (current as NSString).lineRange(for: NSRange(location: i, length: 0)))
-                        print("    primer índice distinto \(i) en línea: \(ctx.debugDescription)")
+                        print("    first differing index \(i) on line: \(ctx.debugDescription)")
                         let safe = name.filter { $0.isLetter }
                         try? current.write(toFile: "/tmp/georg-verify/fail-\(safe).md", atomically: true, encoding: .utf8)
-                        try? before.write(toFile: "/tmp/georg-verify/fail-\(safe)-antes.md", atomically: true, encoding: .utf8)
+                        try? before.write(toFile: "/tmp/georg-verify/fail-\(safe)-before.md", atomically: true, encoding: .utf8)
                         for k in Set(a1.keys).union(a2.keys) where !((a1[k] as AnyObject?)?.isEqual(a2[k]) ?? (a2[k] == nil)) {
-                            print("      \(k.rawValue): parcial=\(String(describing: a1[k])) completo=\(String(describing: a2[k]))")
+                            print("      \(k.rawValue): partial=\(String(describing: a1[k])) full=\(String(describing: a2[k]))")
                         }
                         break
                     }
@@ -270,11 +270,11 @@ enum LiveChecks {
                 return
             }
         }
-        check(true, "[\(name)] equivalencia incremental (\(partialUsed)/40 parciales)")
+        check(true, "[\(name)] incremental equivalence (\(partialUsed)/40 partial)")
     }
 }
 
-/// Generador pseudoaleatorio con semilla, para que las pruebas sean reproducibles.
+/// Seeded pseudo-random generator, so the tests are reproducible.
 struct SplitMix {
     var state: UInt64
     init(seed: UInt64) { state = seed }

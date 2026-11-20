@@ -1,13 +1,13 @@
 import Foundation
 import Markdown
 
-/// Convierte el AST de swift-markdown a HTML.
-/// Seguridad: todo texto se escapa, el HTML crudo del documento nunca se emite
-/// (se muestra como texto) y los destinos de enlace pasan por una lista de esquemas permitidos.
+/// Converts the swift-markdown AST to HTML.
+/// Security: all text is escaped, the document's raw HTML is never emitted
+/// (it is shown as text) and link destinations go through an allowlist of schemes.
 struct HTMLRenderer: MarkupVisitor {
     typealias Result = String
 
-    /// Imágenes ya resueltas a URIs data: (origen original -> URI).
+    /// Images already resolved to data: URIs (original source -> URI).
     var images: [String: String] = [:]
 
     static func escape(_ s: String) -> String {
@@ -26,14 +26,14 @@ struct HTMLRenderer: MarkupVisitor {
         return out
     }
 
-    /// Solo http(s), mailto y enlaces relativos/anclas. Bloquea javascript:, data:, file:, etc.
+    /// Only http(s), mailto and relative links/anchors. Blocks javascript:, data:, file:, etc.
     static func safeURL(_ raw: String?) -> String? {
         guard let raw, !raw.isEmpty else { return nil }
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         let stripped = trimmed.filter { !$0.isWhitespace && !$0.asciiValue.map { $0 < 0x20 }.orFalse }
         if let colon = stripped.firstIndex(of: ":") {
             let scheme = stripped[..<colon].lowercased()
-            // Un ':' tras '/', '?' o '#' no es esquema.
+            // A ':' after '/', '?' or '#' is not a scheme.
             if !scheme.contains("/"), !scheme.contains("?"), !scheme.contains("#") {
                 guard ["http", "https", "mailto"].contains(scheme) else { return nil }
             }
@@ -82,9 +82,9 @@ struct HTMLRenderer: MarkupVisitor {
         return ["note", "tip", "important", "warning", "caution"].first { t == "[!\($0)]" }
     }
 
-    /// Avisos de GitHub: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`.
+    /// GitHub alerts: `> [!NOTE]`, `[!TIP]`, `[!IMPORTANT]`, `[!WARNING]`, `[!CAUTION]`.
     mutating func visitBlockQuote(_ b: BlockQuote) -> String {
-        // Ojo: `children` es solo Sequence; `children.first` resolvería al método `first(where:)` y el cast fallaría siempre.
+        // Careful: `children` is only a Sequence; `children.first` would resolve to the `first(where:)` method and the cast would always fail.
         if b.childCount > 0, let first = b.child(at: 0) as? Paragraph {
             let kids = Array(first.children)
             var acc = ""

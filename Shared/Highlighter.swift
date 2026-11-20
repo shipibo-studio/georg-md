@@ -1,7 +1,7 @@
 import Foundation
 
-/// Resaltado de sintaxis liviano, sin dependencias ni JavaScript.
-/// Emite <span class="k|s|c|n|f|t"> con todo el texto escapado.
+/// Lightweight syntax highlighting, with no dependencies or JavaScript.
+/// Emits <span class="k|s|c|n|f|t"> with all text escaped.
 enum Highlighter {
     struct Spec {
         var keywords: Set<String>
@@ -86,11 +86,11 @@ enum Highlighter {
         return out
     }
 
-    /// Tokens con clase (k, s, c, n, f, t) y su rango en unidades UTF-16, para estilar un NSTextStorage.
+    /// Tokens with a class (k, s, c, n, f, t) and their range in UTF-16 units, for styling an NSTextStorage.
     static func tokens(_ code: String, lang: String) -> [(cls: String, range: NSRange)] {
         guard let spec = spec(for: lang.lowercased()) else { return [] }
         let c = Array(code)
-        // Prefijo acumulado de longitudes UTF-16 por carácter (los grafemas pueden ocupar varias unidades).
+        // Cumulative prefix of UTF-16 lengths per character (graphemes may take several units).
         var u16 = [Int](repeating: 0, count: c.count + 1)
         for (i, ch) in c.enumerated() { u16[i + 1] = u16[i] + ch.utf16.count }
         var out: [(String, NSRange)] = []
@@ -100,7 +100,7 @@ enum Highlighter {
         return out
     }
 
-    /// Recorre el código y emite segmentos contiguos que cubren todo el texto (clase nil = texto plano).
+    /// Walks the code and emits contiguous segments covering the whole text (nil class = plain text).
     private static func scan(_ c: [Character], _ spec: Spec, emit: (String?, Int, Int) -> Void) {
         let n = c.count
         var i = 0
@@ -174,7 +174,7 @@ enum Highlighter {
                 else { emit(nil, i, j) }
                 i = j; continue
             }
-            // Corrida de texto plano hasta el siguiente carácter relevante.
+            // Plain-text run up to the next relevant character.
             var j = i + 1
             while j < n, !(isWord(c[j]) || spec.quotes.contains(c[j]) || c[j] == "$"
                            || spec.line.contains(where: { starts($0, at: j) })

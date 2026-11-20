@@ -1,16 +1,16 @@
 import Foundation
 
-/// Límites defensivos antes de entregar Markdown a swift-markdown.
+/// Defensive limits before handing Markdown to swift-markdown.
 ///
-/// El parser y los visitantes son recursivos: miles de contenedores anidados (`>>>>…`, listas dentro de listas)
-/// desbordan la pila y matan el proceso (la extensión de Quick Look corre en hilos con pila de 512 KB y cae
-/// entre 100 y 200 niveles). El anidamiento de bloques solo puede venir del prefijo de cada línea
-/// (`>`, marcadores de lista e indentación), así que basta con medir y recortar ese prefijo.
+/// The parser and the visitors are recursive: thousands of nested containers (`>>>>…`, lists inside lists)
+/// overflow the stack and kill the process (the Quick Look extension runs on threads with a 512 KB stack and crashes
+/// between 100 and 200 levels). Block nesting can only come from each line's prefix
+/// (`>`, list markers and indentation), so measuring and trimming that prefix is enough.
 enum MarkdownLimits {
     static let maxDepth = 32
 
-    /// Profundidad aproximada de contenedores que abre o continúa la línea, y el largo (UTF-16) de su prefijo
-    /// hasta el punto en que se supera `limit` (nil si no se supera).
+    /// Approximate depth of the containers the line opens or continues, and the (UTF-16) length of its prefix
+    /// up to the point where `limit` is exceeded (nil if it is not exceeded).
     private static func scan(_ line: Substring.UTF16View, limit: Int) -> (depth: Int, cut: Int?) {
         var depth = 0, cols = 0, i = 0
         var cut: Int?
@@ -26,7 +26,7 @@ enum MarkdownLimits {
             case 32: cols += 1; if cols % 2 == 0 { bump(1, at: i) }; i += 1
             case 9: cols += 4; bump(2, at: i); i += 1
             case 62: bump(1, at: i); i += 1 // >
-            case 45, 42, 43: // - * +  (marcador de lista solo si sigue espacio, tab o fin)
+            case 45, 42, 43: // - * +  (list marker only if followed by a space, tab or end)
                 if i + 1 == n || chars[i + 1] == 32 || chars[i + 1] == 9 { bump(1, at: i); i += 1 } else { return (depth, cut) }
             case 48...57:
                 var j = i
@@ -41,7 +41,7 @@ enum MarkdownLimits {
         return (depth, cut)
     }
 
-    /// true si alguna línea supera la profundidad permitida.
+    /// true if any line exceeds the allowed depth.
     static func exceedsNesting(_ text: String, limit: Int = maxDepth) -> Bool {
         for line in text.split(separator: "\n", omittingEmptySubsequences: false) where scan(line.utf16, limit: limit).cut != nil {
             return true
@@ -49,7 +49,7 @@ enum MarkdownLimits {
         return false
     }
 
-    /// Recorta el prefijo de contenedores de las líneas que superan el límite (el resto del texto se conserva).
+    /// Trims the container prefix of the lines that exceed the limit (the rest of the text is kept).
     static func capNesting(_ text: String, limit: Int = maxDepth) -> String {
         guard exceedsNesting(text, limit: limit) else { return text }
         var out: [String] = []
@@ -59,7 +59,7 @@ enum MarkdownLimits {
             }
             let u = line.utf16
             let cutIdx = u.index(u.startIndex, offsetBy: cut)
-            // Se descarta el resto del prefijo (marcadores y espacios) y se conserva el contenido.
+            // The rest of the prefix (markers and spaces) is dropped and the content is kept.
             var rest = line[cutIdx...]
             while let f = rest.first, " \t>-*+.)0123456789".contains(f) { rest = rest.dropFirst() }
             out.append(String(line[..<cutIdx]) + " " + String(rest))

@@ -1,13 +1,13 @@
 import Foundation
 
-/// Resuelve imágenes (locales o web) a URIs `data:` para incrustarlas en el HTML.
-/// Así la CSP del preview sigue siendo `img-src data:` y el HTML nunca toca la red.
+/// Resolves images (local or web) to `data:` URIs to embed them in the HTML.
+/// That way the preview's CSP stays `img-src data:` and the HTML never touches the network.
 ///
-/// Salvaguardas:
-/// - Solo se devuelve contenido cuyo *contenido real* (magic bytes) es una imagen.
-/// - Locales: extensión de imagen, archivo regular, tamaño máximo; nunca se lee otro tipo de archivo.
-/// - Web: solo http(s), sin hosts privados/loopback (también tras redirecciones), sin cookies ni caché,
-///   con tiempos y tamaños máximos.
+/// Safeguards:
+/// - Only content whose *actual content* (magic bytes) is an image is returned.
+/// - Local: image extension, regular file, maximum size; no other kind of file is ever read.
+/// - Web: only http(s), no private/loopback hosts (also after redirects), no cookies or cache,
+///   with maximum timeouts and sizes.
 enum ImageLoader {
     static let maxImages = 24
     static let maxBytes = 8_000_000
@@ -105,8 +105,8 @@ enum ImageLoader {
         return dataURI(data)
     }
 
-    /// Rechaza loopback, redes privadas, link-local y nombres de intranet.
-    /// Limitación conocida: no resuelve DNS, así que un dominio público que apunte a una IP privada no se detecta.
+    /// Rejects loopback, private networks, link-local and intranet names.
+    /// Known limitation: it does not resolve DNS, so a public domain pointing to a private IP is not detected.
     static func isPublicHost(_ host: String?) -> Bool {
         guard var h = host?.lowercased(), !h.isEmpty else { return false }
         while h.hasSuffix(".") { h.removeLast() }
@@ -126,9 +126,9 @@ enum ImageLoader {
         return true
     }
 
-    // MARK: Contenido
+    // MARK: Content
 
-    /// Solo emite una URI si los primeros bytes corresponden a un formato de imagen conocido.
+    /// Only emits a URI if the first bytes match a known image format.
     private static func dataURI(_ data: Data) -> String? {
         guard let mime = sniff(data) else { return nil }
         return "data:\(mime);base64,\(data.base64EncodedString())"
@@ -143,12 +143,12 @@ enum ImageLoader {
            b[8] == 0x57, b[9] == 0x45, b[10] == 0x42, b[11] == 0x50 { return "image/webp" }
         if b.count >= 2, b[0] == 0x42, b[1] == 0x4D { return "image/bmp" }
         let head = String(decoding: d.prefix(1024), as: UTF8.self).lowercased()
-        if head.contains("<svg") { return "image/svg+xml" }  // dentro de <img> no ejecuta scripts ni carga recursos
+        if head.contains("<svg") { return "image/svg+xml" }  // inside <img> it runs no scripts and loads no resources
         return nil
     }
 }
 
-/// Revalida cada redirección: mismo criterio de host público y solo http(s).
+/// Revalidates every redirect: same public-host rule and only http(s).
 final class RedirectGuard: NSObject, URLSessionTaskDelegate, @unchecked Sendable {
     func urlSession(_ session: URLSession, task: URLSessionTask,
                     willPerformHTTPRedirection response: HTTPURLResponse,
