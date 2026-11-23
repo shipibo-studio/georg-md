@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- **The release checksum file lists only the disk image's name.** The `.sha256` published with 1.1.0 carried an absolute path from the build machine, so `shasum -c` failed after downloading; the 1.1.0 asset has been replaced and future releases are generated correctly.
+
 ## [1.1.0] - 2026-11-19
 
 First public release: signed with Developer ID and notarized by Apple. A 1.0.0 build was published briefly under the bundle id `cl.jorgeepunan.georgmd` and then withdrawn; if you installed it, delete it after installing 1.1.0 (macOS treats the two as different apps).
