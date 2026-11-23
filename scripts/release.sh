@@ -124,7 +124,9 @@ if [[ $NOTARIZE == 1 ]]; then
   spctl -a -vv "$APP"
 fi
 
-shasum -a 256 "$DMG" | tee "$DMG.sha256"
+# Hash the file from inside dist/ so the .sha256 lists only the file name: an absolute path would
+# leak this machine's layout and make `shasum -c` fail anywhere else.
+(cd "$DIST" && shasum -a 256 "$(basename "$DMG")") | tee "$DMG.sha256"
 
 if [[ $PUBLISH == 1 ]]; then
   step "Publishing v$VERSION to $REPO"
